@@ -1,12 +1,11 @@
 # pca_gdlc experiment configuration
 defaults:
   - _self_
-  - exp1/base_config
-  - model/cnn
+  - exp1/base_config@base
+
 
 experiment:
   exp: "exp1"
-  name: "pca_gdlc_cnn"
   type: "pca_gdlc"
   description: "PCA_GDLC experiment with basic CNN model"
   num_pca_components: 3
@@ -16,9 +15,6 @@ additional_columns:
     - "global_pca_1"
     - "global_pca_2"
     - "global_pca_3"
-
-models:
-  - model/cnn
 
 logging:
   wandb:

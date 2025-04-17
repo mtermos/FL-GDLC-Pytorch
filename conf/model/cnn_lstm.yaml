@@ -3,41 +3,32 @@ model:
   name: "cnn_lstm"
   type: "cnn_lstm"
   
-  # CNN layers
-  cnn:
-    filters: [80, 80]
-    kernel_sizes: [3, 3]
-    activation: "LeakyReLU"
-    dropout: 0.3
-    batch_norm: true
-  
-  # LSTM layers
-  lstm:
-    hidden_size: [80]
-    activation: "LeakyReLU"
-    dropout: 0.3
-    batch_norm: true
+layers:
+  - cnn
+  - lstm
+  - dense
 
-  # Dense layers
-  dense:
-    units: [200, 200, 80]
-    activation: "LeakyReLU"
-    dropout: 0.1
-    batch_norm: true
-  
-  # Output layer
-  output:
-    activation_bc: "sigmoid"  # for binary classification
-    activation_mc: "softmax"  # for multi-class classification
-  
-  # Training settings
-  optimizer:
-    name: "adam"
-    learning_rate: 0.001
-    weight_decay: 0.01
-  
-  # Regularization
-  regularization:
-    LAMBD_2: 0.01
-    dropout: true
-    batch_norm: true 
+# CNN layers
+cnn:
+  filters: [80, 80]
+  kernel_sizes: [3, 3]
+  activation: "leaky_relu"
+  dropout: true
+  dropout_rate: 0.3
+  batch_norm: true
+
+# LSTM layers
+lstm:
+  hidden_size: [80]
+  activation: "leaky_relu"
+  dropout: true
+  dropout_rate: 0.3
+  batch_norm: true
+
+# Dense layers
+dense:
+  units: [200, 200, 80]
+  activation: "leaky_relu"
+  dropout: true
+  dropout_rate: 0.3
+  batch_norm: true

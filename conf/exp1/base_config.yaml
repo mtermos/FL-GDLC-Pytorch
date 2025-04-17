@@ -203,6 +203,10 @@ fl:
   # min_evaluate_clients: 8
   # min_available_clients: 8
 
+models:
+  # - mlp
+  # - cnn
+  - cnn_lstm
 
 logging:
   selected_type: "wandb"

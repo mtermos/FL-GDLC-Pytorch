@@ -4,11 +4,12 @@ import torch.nn as nn
 from src.models.activations import ACTIVATIONS
 
 
-class CNN(nn.Module):
+class CNNLSTM(nn.Module):
     def __init__(self, model_cfg, num_features, num_classes):
         super().__init__()
 
         self.cnn_activation = ACTIVATIONS[model_cfg.cnn.activation]
+        self.lstm_activation = ACTIVATIONS[model_cfg.lstm.activation]
         self.dense_activation = ACTIVATIONS[model_cfg.dense.activation]
 
         conv_layers = []
@@ -19,6 +20,7 @@ class CNN(nn.Module):
                 in_channels=in_channels,
                 out_channels=filter,
                 kernel_size=model_cfg.cnn.kernel_sizes[i],
+                padding=1
             )
             conv_layers.append(cnn)
             conv_layers.append(self.cnn_activation())
@@ -29,14 +31,29 @@ class CNN(nn.Module):
             in_channels = filter
 
         self.features = nn.Sequential(*conv_layers)
-        with torch.no_grad():
-            # make a dummy of shape (1, channels, length)
-            dummy = torch.zeros(1, 1, num_features)
-            feat = self.features(dummy)
-            # feat.shape -> [1, C_last, L_final]
-            input_dim = feat.size(1) * feat.size(2)
 
-        print(f"==>> input_dim: {input_dim}")
+        self.lstm_layers = nn.ModuleList()
+        self.lstm_activations = nn.ModuleList()
+        lstm_input_size = filter
+
+        for hidden_dim in model_cfg.lstm.hidden_size:
+            self.lstm_layers.append(
+                nn.LSTM(
+                    input_size=lstm_input_size,
+                    hidden_size=hidden_dim,
+                    num_layers=1,
+                    batch_first=True,
+                    dropout=model_cfg.lstm.dropout_rate if model_cfg.lstm.dropout else 0,
+                    bidirectional=False
+                )
+            )
+            if self.lstm_activation:
+                self.lstm_activations.append(self.lstm_activation())
+            lstm_input_size = hidden_dim
+
+        # after LSTM, we'll take the last hidden‐state, so our
+        # `input_dim` for the dense layers is just the last hidden_dim
+        input_dim = model_cfg.lstm.hidden_size[-1]
 
         fc_layers = []
         for hidden_dim in model_cfg.dense.units:
@@ -54,7 +71,16 @@ class CNN(nn.Module):
 
     def forward(self, x):
         x = x.view(x.size(0), 1, x.size(1))
-        print(f"==>> x.shape: {x.shape}")
+        # → [batch, L_final, C_last]
         x = self.features(x)
-        x = x.flatten(1)
+        x = x.permute(0, 2, 1)
+
+        # pass through each LSTM layer
+        for i, lstm in enumerate(self.lstm_layers):
+            x, _ = lstm(x)                    # x: [batch, L, hidden_dim_i]
+            if i < len(self.lstm_activations):
+                x = self.lstm_activations[i](x)
+
+        # grab last time step
+        x = x[:, -1, :]                       # → [batch, hidden_dim_last]
         return self.classifier(x)

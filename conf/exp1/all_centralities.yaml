@@ -1,12 +1,11 @@
 # selected_centralities experiment configuration
 defaults:
   - _self_
-  - exp1/base_config
-  - model/cnn
+  - exp1/base_config@base
+
 
 experiment:
   exp: "exp1"
-  name: "all_centralities_cnn"
   type: "all_centralities"
   description: "All centralities experiment with basic CNN model"
 
@@ -70,9 +69,6 @@ network_features:
   - "dst_mv"
   - "src_Comm"
   - "dst_Comm"
-
-models:
-  - model/cnn
 
 logging:
   wandb:

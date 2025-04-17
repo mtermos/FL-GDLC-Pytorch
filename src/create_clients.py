@@ -166,5 +166,5 @@ def create_clients(base_cfg, cfg):
     # Save final dataframes
     _save_dataframes(df_list, test_df, names, processed_dir, cfg, dataset, G)
 
-    input_dim = df_list[0].shape[1]
+    input_dim = df_list["client_0"].shape[1]
     return df_list, test_df, input_dim

@@ -18,10 +18,6 @@ data_features:
   pca_gdlc:
     enabled: false
 
-models:
-  # - cnn
-  - mlp
-
 logging:
   wandb:
     name: "baseline_cnn"

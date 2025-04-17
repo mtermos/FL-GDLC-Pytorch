@@ -1,12 +1,10 @@
 # selected_centralities experiment configuration
 defaults:
   - _self_
-  - exp1/base_config
-  - model/cnn
+  - exp1/base_config@base
 
 experiment:
   exp: "exp1"
-  name: "selected_centralities_cnn"
   type: "selected_centralities"
   description: "Selected Centralities experiment with basic CNN model"
 
@@ -22,9 +20,6 @@ network_features:
   - "dst_betweenness"
   - "src_pagerank"
   - "dst_pagerank"
-
-models:
-  - model/cnn
 
 logging:
   wandb:

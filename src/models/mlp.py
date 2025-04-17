@@ -1,21 +1,20 @@
 import torch.nn as nn
 
+from src.models.activations import ACTIVATIONS
+
 
 class MLP(nn.Module):
     def __init__(self, model_cfg, num_features, num_classes):
         super().__init__()
 
-        if model_cfg.dense.activation == "relu":
-            self.activation = nn.ReLU()
-        elif model_cfg.dense.activation == "leaky_relu":
-            self.activation = nn.LeakyReLU()
+        self.dense_activation = ACTIVATIONS[model_cfg.dense.activation]
 
         layers = []
         input_dim = num_features
 
         for hidden_dim in model_cfg.dense.units:
             layers.append(nn.Linear(input_dim, hidden_dim))
-            layers.append(self.activation)
+            layers.append(self.dense_activation())
             if model_cfg.dense.batch_norm:
                 layers.append(nn.BatchNorm1d(hidden_dim))
             if model_cfg.dense.dropout:
