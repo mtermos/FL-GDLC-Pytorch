@@ -57,7 +57,7 @@ class DatasetInfo:
 
             # List of complex network measures added to this dataset.
             cn_measures=[],
-            
+
 
             # List of names used for these complex network.
             network_features=[]
@@ -79,17 +79,15 @@ class DatasetInfo:
         self.network_features = network_features
 
 
-cn_measures_type_1 = ["betweenness", "local_betweenness", "degree", "local_degree",
-                      "eigenvector", "closeness", "pagerank", "local_pagerank", "k_core", "k_truss", "Comm"]
-network_features_type_1 = ['src_betweenness', 'dst_betweenness', 'src_local_betweenness', 'dst_local_betweenness', 'src_degree', 'dst_degree', 'src_local_degree', 'dst_local_degree', 'src_eigenvector',
-                           'dst_eigenvector', 'src_closeness', 'dst_closeness', 'src_pagerank', 'dst_pagerank', 'src_local_pagerank', 'dst_local_pagerank', 'src_k_core', 'dst_k_core', 'src_k_truss', 'dst_k_truss', 'src_Comm', 'dst_Comm']
-
-
 # cn_measures_type_1 = ["betweenness", "local_betweenness", "degree", "local_degree",
 #                       "closeness", "pagerank", "local_pagerank",  "k_truss", "Comm"]
 # network_features_type_1 = ['src_betweenness', 'dst_betweenness', 'src_local_betweenness', 'dst_local_betweenness', 'src_degree', 'dst_degree', 'src_local_degree', 'dst_local_degree',
 #                            'src_closeness', 'dst_closeness', 'src_pagerank', 'dst_pagerank', 'src_local_pagerank', 'dst_local_pagerank', 'src_k_truss', 'dst_k_truss', 'src_Comm', 'dst_Comm']
 
+cn_measures_type_1 = ["betweenness", "local_betweenness", "degree", "local_degree",
+                      "eigenvector", "closeness", "pagerank", "local_pagerank", "k_core", "k_truss", "Comm"]
+network_features_type_1 = ['src_betweenness', 'dst_betweenness', 'src_local_betweenness', 'dst_local_betweenness', 'src_degree', 'dst_degree', 'src_local_degree', 'dst_local_degree', 'src_eigenvector',
+                           'dst_eigenvector', 'src_closeness', 'dst_closeness', 'src_pagerank', 'dst_pagerank', 'src_local_pagerank', 'dst_local_pagerank', 'src_k_core', 'dst_k_core', 'src_k_truss', 'dst_k_truss', 'src_Comm', 'dst_Comm']
 
 cn_measures_type_2 = ["betweenness", "global_betweenness", "degree", "global_degree",
                       "eigenvector", "closeness", "pagerank", "global_pagerank", "k_core", "k_truss", "mv"]

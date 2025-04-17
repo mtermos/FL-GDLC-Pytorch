@@ -1,0 +1,73 @@
+import time
+import numpy as np
+import pytorch_lightning as pl
+from logging import INFO
+from flwr.common.logger import log
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+
+from src.models.init_model import init_model
+from src.data.data_module import TestDataModule
+
+
+def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, model_name, cfg, config_to_add_to_logger):
+    def evaluate_fn(server_round: int, parameters, config):
+
+        logging_cfg = cfg.base.logging[cfg.base.logging.selected_type]
+        if cfg.base.logging.selected_type == "wandb":
+            logger = WandbLogger(
+                project=logging_cfg.project,
+                config=config_to_add_to_logger,
+                name=f"{cfg.experiment.type}_{model_name}_test",
+                save_dir=f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{cfg.experiment.type}_{model_name}_test"
+            )
+        else:
+            logger = TensorBoardLogger(
+                f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{time.strftime('%Y%m%d-%H%M%S')}/{cfg.experiment.type}_{model_name}/test")
+
+        # Create data module for evaluation
+        data_module = TestDataModule(
+            x_test=np.array(x_test_server),
+            y_test=np.array(y_test_server),
+            batch_size=training_cfg.batch_size
+        )
+
+        eval_model.set_parameters(parameters)
+
+        # Setup trainer
+        trainer = pl.Trainer(
+            max_epochs=1,
+            logger=logger
+        )
+
+        # Evaluate model
+        test_results = trainer.test(eval_model, datamodule=data_module)
+        test_loss = test_results[0]["test_loss"]
+        test_acc = test_results[0]["test_acc"]
+        test_f1 = test_results[0]["test_f1"]
+
+        results_dict = {
+            "test_loss": test_loss,
+            "test_acc": test_acc,
+            "test_f1": test_f1,
+            "round": server_round
+        }
+
+        print(f"==>> results_dict: {results_dict}")
+        # Log metrics with round number
+        if cfg.base.logging.selected_type == "wandb":
+            logger.log_metrics(results_dict, step=server_round)
+            # logger.experiment.log(results_dict, step=server_round)
+
+        log(INFO, f"==>> scores: {test_results}")
+        # Log results
+        # results["accuracy"][server_round] = test_acc
+        # results["f1s"][server_round] = test_f1
+        # results["server"][server_round] = test_results
+
+        # in history.metrics_centralized
+        return test_loss, {
+            "accuracy": test_acc,
+            "test_f1": test_f1
+        }
+
+    return evaluate_fn

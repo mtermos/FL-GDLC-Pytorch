@@ -1,0 +1,14 @@
+# MLP model configuration
+model:
+  name: "mlp"
+  type: "mlp"
+
+layers:
+  - dense
+  
+dense:
+  units: [200, 200, 80]
+  activation: "leaky_relu"
+  dropout: true
+  dropout_rate: 0.3
+  batch_norm: true

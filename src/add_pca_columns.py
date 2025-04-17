@@ -309,7 +309,7 @@ def evaluate_pca_results(clients_paths):
         print("\n" + "="*50 + "\n")
 
 
-def process_clients_with_grouped_pca_rmse(feature_groups, output_folder, n_components=2, client_cn_measures=None):
+def process_clients_with_grouped_pca_rmse(feature_groups, df_list, output_folder, n_components=2, client_cn_measures=None):
     def calculate_local_pca(df, cn_measures, n_components=2):
         existing_measures = [
             measure for measure in cn_measures if measure in df.columns]
@@ -350,7 +350,8 @@ def process_clients_with_grouped_pca_rmse(feature_groups, output_folder, n_compo
     for group_id, (unique_feature_set, clients) in enumerate(feature_groups.items(), 1):
         for client_path in clients:
             print(client_path)
-            df = pd.read_parquet(client_path)
+            df = df_list[client_path]
+            # df = pd.read_parquet(client_path)
 
             client_cn_measures = [
                 measure for measure in unique_feature_set if measure in df.columns
@@ -363,6 +364,8 @@ def process_clients_with_grouped_pca_rmse(feature_groups, output_folder, n_compo
             centrality_data_pca, explained_variance, mean, scale, pca_components = calculate_local_pca(
                 df, client_cn_measures, n_components)
             all_local_pca_results.append(centrality_data_pca)
+
+            df.drop(columns=client_cn_measures, inplace=True)
 
             local_explained_variances[client_path] = explained_variance
 
@@ -423,7 +426,7 @@ def process_clients_with_grouped_pca_rmse(feature_groups, output_folder, n_compo
         print(f"Client {client_path} Local PCA RMSE: {rmse_local}")
         print(f"Client {client_path} Federated PCA RMSE: {rmse_federated}")
 
-    return {
+    return client_dfs, {
         'reconstruction_errors_local': reconstruction_errors_local,
         'reconstruction_errors_federated': reconstruction_errors_federated,
     }, pca_columns

@@ -1,0 +1,33 @@
+# selected_centralities experiment configuration
+defaults:
+  - _self_
+  - exp1/base_config
+  - model/cnn
+
+experiment:
+  exp: "exp1"
+  name: "selected_centralities_cnn"
+  type: "selected_centralities"
+  description: "Selected Centralities experiment with basic CNN model"
+
+centralities:
+  - "degree"
+  - "betweenness"
+  - "pagerank"
+
+network_features:
+  - "src_degree"
+  - "dst_degree"
+  - "src_betweenness"
+  - "dst_betweenness"
+  - "src_pagerank"
+  - "dst_pagerank"
+
+models:
+  - model/cnn
+
+logging:
+  wandb:
+    name: "selected_centralities_cnn"
+    additional_tags: ["selected_centralities", "cnn"]
+    save_dir: "logs/wandb_runs"
