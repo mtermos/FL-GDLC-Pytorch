@@ -52,13 +52,12 @@ def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, mode
             "round": server_round
         }
 
-        print(f"==>> results_dict: {results_dict}")
         # Log metrics with round number
         if cfg.base.logging.selected_type == "wandb":
             logger.log_metrics(results_dict, step=server_round)
             # logger.experiment.log(results_dict, step=server_round)
 
-        log(INFO, f"==>> scores: {test_results}")
+        # log(INFO, f"==>> scores: {test_results}")
         # Log results
         # results["accuracy"][server_round] = test_acc
         # results["f1s"][server_round] = test_f1

@@ -7,8 +7,10 @@ layers:
   - dense
   
 dense:
+  # units: [100, 80]
   units: [200, 200, 80]
   activation: "leaky_relu"
   dropout: true
-  dropout_rate: 0.3
-  batch_norm: true
+  dropout_rate: 0.2
+  batch_norm: false
+  layer_norm: true

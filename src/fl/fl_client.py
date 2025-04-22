@@ -4,10 +4,11 @@ import torch
 
 
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, data_module, model, logger):
+    def __init__(self, data_module, model, logger, logger_type):
         self.data_module = data_module
         self.model = model
         self.logger = logger
+        self.logger_type = logger_type
 
         # Setup data module
         self.data_module.setup()
@@ -50,9 +51,20 @@ class FLClient(fl.client.NumPyClient):
         # Get metrics
         metrics = {
             'train_loss': float(self.trainer.callback_metrics.get('train_loss', 0.0)),
+            'train_f1_score': float(self.trainer.callback_metrics.get('train_f1_score', 0.0)),
             'val_loss': float(self.trainer.callback_metrics.get('val_loss', 0.0)),
-            'val_acc': float(self.trainer.callback_metrics.get('val_acc', 0.0))
+            'val_acc': float(self.trainer.callback_metrics.get('val_acc', 0.0)),
+            'val_f1_score': float(self.trainer.callback_metrics.get('val_f1_score', 0.0))
         }
+
+        if 'server_round' in config:
+            server_round = float(config['server_round'])
+
+            metrics["round"] = server_round
+            metrics["lr"] = float(config['lr'])
+
+            if self.logger_type == "wandb":
+                self.logger.log_metrics(metrics, step=server_round)
 
         return parameters_prime, num_examples, metrics
 

@@ -11,6 +11,7 @@ def get_on_fit_config(cfg: DictConfig):
             "lr": alpha,
             "local_epochs": cfg.max_epochs,
             "batch_size": cfg.batch_size,
+            "server_round": server_round,
         }
 
     return fit_config_fn

@@ -81,7 +81,7 @@ def main(experiment, exp_type):
 
 
 if __name__ == "__main__":
-    experiment = "exp1"
+    experiment = "exp1_small"
     exp_type = "baseline"
     # exp_type = "selected_centralities"
     # exp_type = "all_centralities"

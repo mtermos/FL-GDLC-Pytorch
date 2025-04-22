@@ -1,0 +1,80 @@
+# selected_centralities experiment configuration
+defaults:
+  - _self_
+  - exp1_small/base_config@base
+
+
+experiment:
+  exp: "exp1_small"
+  type: "all_centralities"
+  description: "All centralities experiment with basic CNN model"
+
+centralities:
+  - "degree"
+  - "local_degree"
+  - "global_degree"
+  - "betweenness"
+  - "local_betweenness"
+  - "global_betweenness"
+  - "eigenvector"
+  # - "local_eigenvector"
+  # - "global_eigenvector"
+  - "closeness"
+  # - "local_closeness"
+  # - "global_closeness"
+  - "pagerank"
+  - "local_pagerank"
+  - "global_pagerank"
+  - "k_core"
+  - "k_truss"
+  - "mv"
+  - "Comm"
+
+network_features:
+  - "src_degree"
+  - "dst_degree"
+  - "src_local_degree"
+  - "dst_local_degree"
+  - "src_global_degree"
+  - "dst_global_degree"
+  - "src_betweenness"
+  - "dst_betweenness"
+  - "src_local_betweenness"
+  - "dst_local_betweenness"
+  - "src_global_betweenness"
+  - "dst_global_betweenness"
+  - "src_eigenvector"
+  - "dst_eigenvector"
+  # - "src_local_eigenvector"
+  # - "dst_local_eigenvector"
+  # - "src_global_eigenvector"
+  # - "dst_global_eigenvector"
+  - "src_closeness"
+  - "dst_closeness"
+  # - "src_local_closeness"
+  # - "dst_local_closeness"
+  # - "src_global_closeness"
+  # - "dst_global_closeness"
+  - "src_pagerank"
+  - "dst_pagerank"
+  - "src_local_pagerank"
+  - "dst_local_pagerank"
+  - "src_global_pagerank"
+  - "dst_global_pagerank"
+  - "src_k_core"
+  - "dst_k_core"
+  - "src_k_truss"
+  - "dst_k_truss"
+  - "src_mv"
+  - "dst_mv"
+  - "src_Comm"
+  - "dst_Comm"
+
+logging:
+  wandb:
+    name: "all_centralities_cnn"
+    additional_tags: ["all_centralities", "cnn"]
+    save_dir: "logs/wandb_runs"
+
+
+

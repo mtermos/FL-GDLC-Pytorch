@@ -12,14 +12,26 @@ def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_lo
     def client_fn(context: Context):
         client_id = int(context.node_config["partition-id"])
 
-        logging_cfg = cfg.base.logging[cfg.base.logging.selected_type]
-        if cfg.base.logging.selected_type == "wandb":
+        if client_id in [0, 5]:
+            print(f"==>> client_id: {client_id}")
+            logging_type = cfg.base.logging.selected_type
+        else:
+            print(f"==>> tensorboard client_id: {client_id}")
+            logging_type = "tensorboard"
+
+        print(f"==>> logging_type: {logging_type}")
+        print("======================")
+
+        logging_cfg = cfg.base.logging[logging_type]
+
+        if logging_type == "wandb":
             logger = WandbLogger(
                 project=logging_cfg.project,
                 config=config_to_add_to_logger,
                 name=f"{cfg.experiment.type}_{model_name}_client_{client_id}",
                 save_dir=f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{cfg.experiment.type}_{model_name}_client_{client_id}"
             )
+
         else:
             logger = TensorBoardLogger(
                 f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{time.strftime('%Y%m%d-%H%M%S')}/{cfg.experiment.type}_{model_name}/client_{client_id}")
@@ -38,7 +50,8 @@ def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_lo
         return FLClient(
             data_module=data_module,
             model=model,
-            logger=logger
+            logger=logger,
+            logger_type=logging_type
         ).to_client()
 
     return client_fn

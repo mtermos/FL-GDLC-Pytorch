@@ -17,6 +17,8 @@ class MLP(nn.Module):
             layers.append(self.dense_activation())
             if model_cfg.dense.batch_norm:
                 layers.append(nn.BatchNorm1d(hidden_dim))
+            if model_cfg.dense.layer_norm:
+                layers.append(nn.LayerNorm(hidden_dim))
             if model_cfg.dense.dropout:
                 layers.append(nn.Dropout(model_cfg.dense.dropout_rate))
             input_dim = hidden_dim

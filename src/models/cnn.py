@@ -36,7 +36,7 @@ class CNN(nn.Module):
             # feat.shape -> [1, C_last, L_final]
             input_dim = feat.size(1) * feat.size(2)
 
-        print(f"==>> input_dim: {input_dim}")
+        # print(f"==>> input_dim: {input_dim}")
 
         fc_layers = []
         for hidden_dim in model_cfg.dense.units:
@@ -54,7 +54,7 @@ class CNN(nn.Module):
 
     def forward(self, x):
         x = x.view(x.size(0), 1, x.size(1))
-        print(f"==>> x.shape: {x.shape}")
+        # print(f"==>> x.shape: {x.shape}")
         x = self.features(x)
         x = x.flatten(1)
         return self.classifier(x)
