@@ -29,5 +29,5 @@ def calculate_df_properties(df, G, dataset, processed_dir, name):
 
     properties["average_degree"] = np.mean(list(dict(G.degree()).values()))
 
-    with open(os.path.join(processed_dir, name + '_properties.txt'), 'w') as f:
+    with open(os.path.join(processed_dir, name + '_properties.json'), 'w') as f:
         json.dump(properties, f)

@@ -5,13 +5,14 @@ from flwr.simulation import run_simulation
 from flwr.client import ClientApp
 from flwr.server import ServerApp
 from hydra import initialize, compose
+import warnings
+import wandb
+import ray
 
 from src.load_clients import load_clients
 from src.fl.fl_server import generate_server_fn
 from src.fl.generate_client_fn import generate_client_fn
 from src.models.init_model import init_model
-import warnings
-import wandb
 
 # Suppress the “does not have many workers” UserWarning
 warnings.filterwarnings(
@@ -33,7 +34,7 @@ def main(experiment, exp_type):
     print("==================================")
     print(f"==>> experiment: {experiment}")
     print(f"==>> exp_type: {exp_type}")
-    os.environ["RAY_DEDUP_LOGS"] = "0"
+    # os.environ["RAY_DEDUP_LOGS"] = "0"
     DEVICE = torch.device("cpu")
 
     cfg = load_config(os.path.join(experiment, f"{exp_type}"))
@@ -82,28 +83,28 @@ def main(experiment, exp_type):
         server_app = ServerApp(server_fn=generate_server_fn(
             test_data, test_labels, s_model, model_name, cfg, config, run_dtime))
 
-        backend_config = {
-            "client_resources": {"num_cpus": 1},
-            "actor": {
-                "max_restarts": 0,      # disable automatic restarts
-                "max_task_retries": 0,  # likewise for individual tasks
-            }
-        }
+        backend_config = {"client_resources": {"num_cpus": 1}}
         if DEVICE.type == "cuda":
-            backend_config = {
-                "client_resources": {"num_gpus": 1, "num_cpus": 1},
-                "actor": {
-                    "max_restarts": 0,      # disable automatic restarts
-                    "max_task_retries": 0,  # likewise for individual tasks
-                }
-            }
-        run_simulation(
-            server_app=server_app,
-            client_app=client_app,
-            num_supernodes=cfg.base.fl.num_clients,
-            backend_config=backend_config,
-        )
-        wandb.finish()
+            backend_config = {"client_resources": {
+                "num_gpus": 1, "num_cpus": 1}}
+        backend_config["actor"] = {
+            "max_restarts": 0,      # disable automatic restarts
+            "max_task_retries": 0,  # likewise for individual tasks
+        }
+        # backend_config["init_args"] = {
+        #     "_system_config": {"disable_dashboard": True}},
+
+    run_simulation(
+        server_app=server_app,
+        client_app=client_app,
+        num_supernodes=cfg.base.fl.num_clients,
+        backend_config=backend_config,
+    )
+
+    if ray.is_initialized():
+        ray.shutdown()
+
+    wandb.finish()
 
 
 if __name__ == "__main__":

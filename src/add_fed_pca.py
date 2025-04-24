@@ -5,38 +5,45 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 
+# Function to calculate local PCA from a single client's DataFrame.
+
+
+def _calculate_local_pca(df, cn_measures, n_components=2):
+    # Keep only the centrality measures that actually exist in the DataFrame.
+    existing_measures = [
+        measure for measure in cn_measures if measure in df.columns]
+    if not existing_measures:
+        raise ValueError(
+            "No valid centrality measures found in DataFrame columns.")
+
+    # Prepare data by filling missing values.
+    centrality_data = df[existing_measures].fillna(0)
+    scaler = StandardScaler()
+    centrality_data_std = scaler.fit_transform(centrality_data)
+    pca = PCA(n_components=n_components)
+    centrality_data_pca = pca.fit_transform(centrality_data_std)
+    explained_variance = pca.explained_variance_ratio_
+    return centrality_data_pca, explained_variance, scaler.mean_, scaler.scale_, pca.components_
+
+# Calculate covariance of the PCA-transformed data.
+
+
+def _calculate_local_covariance(pca_results):
+    return np.cov(pca_results, rowvar=False)
+
+# Combine local covariance matrices to compute the global principal components.
+
+
+def _apply_global_pca(local_covariances, n_components):
+    global_covariance_matrix = np.mean(local_covariances, axis=0)
+    eigen_values, eigen_vectors = np.linalg.eigh(global_covariance_matrix)
+    sorted_indices = np.argsort(eigen_values)[::-1]
+    global_principal_components = eigen_vectors[:,
+                                                sorted_indices][:, :n_components]
+    return global_principal_components
+
 
 def process_clients_with_grouped_pca_rmse(client_names, features_list, df_list, output_folder, n_components=2):
-    # Function to calculate local PCA from a single client's DataFrame.
-    def calculate_local_pca(df, cn_measures, n_components=2):
-        # Keep only the centrality measures that actually exist in the DataFrame.
-        existing_measures = [
-            measure for measure in cn_measures if measure in df.columns]
-        if not existing_measures:
-            raise ValueError(
-                "No valid centrality measures found in DataFrame columns.")
-
-        # Prepare data by filling missing values.
-        centrality_data = df[existing_measures].fillna(0)
-        scaler = StandardScaler()
-        centrality_data_std = scaler.fit_transform(centrality_data)
-        pca = PCA(n_components=n_components)
-        centrality_data_pca = pca.fit_transform(centrality_data_std)
-        explained_variance = pca.explained_variance_ratio_
-        return centrality_data_pca, explained_variance, scaler.mean_, scaler.scale_, pca.components_
-
-    # Calculate covariance of the PCA-transformed data.
-    def calculate_local_covariance(pca_results):
-        return np.cov(pca_results, rowvar=False)
-
-    # Combine local covariance matrices to compute the global principal components.
-    def apply_global_pca(local_covariances):
-        global_covariance_matrix = np.mean(local_covariances, axis=0)
-        eigen_values, eigen_vectors = np.linalg.eigh(global_covariance_matrix)
-        sorted_indices = np.argsort(eigen_values)[::-1]
-        global_principal_components = eigen_vectors[:,
-                                                    sorted_indices][:, :n_components]
-        return global_principal_components
 
     os.makedirs(output_folder, exist_ok=True)
 
@@ -64,7 +71,7 @@ def process_clients_with_grouped_pca_rmse(client_names, features_list, df_list, 
 
         # Compute the local PCA for this client.
         try:
-            centrality_data_pca, explained_variance, mean, scale, pca_components = calculate_local_pca(
+            centrality_data_pca, explained_variance, mean, scale, pca_components = _calculate_local_pca(
                 df, client_cn_measures, n_components
             )
         except ValueError as e:
@@ -74,8 +81,10 @@ def process_clients_with_grouped_pca_rmse(client_names, features_list, df_list, 
         all_local_pca_results.append(centrality_data_pca)
         local_explained_variances[client] = explained_variance
 
+        df.drop(columns=client_cn_measures, inplace=True)
+
         # Compute covariance matrix of the local PCA results.
-        local_covariance_matrix = calculate_local_covariance(
+        local_covariance_matrix = _calculate_local_covariance(
             centrality_data_pca)
         local_covariances.append(local_covariance_matrix)
 
@@ -87,7 +96,8 @@ def process_clients_with_grouped_pca_rmse(client_names, features_list, df_list, 
         client_dfs[client] = df
 
     # Compute global principal components using the average of local covariances.
-    global_principal_components = apply_global_pca(local_covariances)
+    global_principal_components = _apply_global_pca(
+        local_covariances, n_components)
 
     scaler_post_pca = StandardScaler()
 
@@ -135,7 +145,7 @@ def process_clients_with_grouped_pca_rmse(client_names, features_list, df_list, 
         print(f"Client {client} Local PCA RMSE: {rmse_local}")
         print(f"Client {client} Federated PCA RMSE: {rmse_federated}")
 
-    return {
+    return client_dfs, {
         'reconstruction_errors_local': reconstruction_errors_local,
         'reconstruction_errors_federated': reconstruction_errors_federated,
     }, pca_columns

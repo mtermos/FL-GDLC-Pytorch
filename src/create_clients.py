@@ -3,16 +3,16 @@ import os
 import numpy as np
 import pickle
 import networkx as nx
-from collections import defaultdict
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from local_variables import original_datasets_files_path
 from src.data.calculate_df_properties import calculate_df_properties
 from src.graph.centralities import add_centralities
 from src.graph.add_gdlc_centralities import add_gdlc_centralities
-from src.add_pca_columns import process_clients_with_grouped_pca_rmse
+from src.add_fed_pca import process_clients_with_grouped_pca_rmse
 import json
 from src.utils import NumpyEncoder
+from src.data.normalize_labels import normalize_labels
 
 
 def _load_df(file_path, raw_type):
@@ -28,13 +28,7 @@ def _process_dataset(df, dataset):
     df.drop_duplicates(subset=list(set(
         df.columns) - set([dataset.timestamp_col, dataset.flow_id_col])), keep="first", inplace=True)
 
-    if dataset.name == "cic_ids_2017":
-        df[dataset.class_col] = df[dataset.class_col].replace({
-            "BENIGN": "Benign",
-            "DDoS": "ddos",
-            "Web Attack Brute Force": "bruteforce",
-            "Web Attack XSS": "xss"
-        })
+    df[dataset.class_col] = normalize_labels(df, dataset.class_col)
     return df
 
 
@@ -97,7 +91,7 @@ def create_clients(base_cfg, cfg):
     test_df_list = []
     names = []
     df_mapping = {}
-    pca_features_mapping = {}
+    gdlc_features_mapping = {}
 
     for dataset_properties in base_cfg.datasets.datasets_list:
         dataset = dataset_properties.dataset_properties
@@ -116,37 +110,30 @@ def create_clients(base_cfg, cfg):
         for client_df in np.array_split(clients_df, dataset.num_clients):
             client_name = f"client_{clients_count}"
             names.append(client_name)
-            pca_features = _process_partition_data(
+            gdlc_features = _process_partition_data(
                 client_df, dataset, client_name, cfg, processed_dir)
-            pca_features_mapping[client_name] = pca_features
+            gdlc_features_mapping[client_name] = gdlc_features
             df_mapping[client_name] = client_df
             clients_count += 1
 
     # Process test data
     test_df = pd.concat(test_df_list)
-    pca_features = _process_partition_data(
+    gdlc_features = _process_partition_data(
         test_df, dataset, "test", cfg, processed_dir)
-    pca_features_mapping["test"] = pca_features
+    gdlc_features_mapping["test"] = gdlc_features
 
     # Handle PCA specific processing
     if cfg.experiment.type == "pca_gdlc":
         names.append("test")
         df_mapping["test"] = test_df
 
-        feature_groups = defaultdict(list)
-        for client_path, features in pca_features_mapping.items():
-            feature_groups[frozenset(features)].append(client_path)
-
-        print("==============================")
-        for i, (unique_feature_set, clients) in enumerate(feature_groups.items(), 1):
-            print(f"Unique Centrality Feature Set Group {i}:")
-            print(f"Centrality Features: {set(unique_feature_set)}")
-            print(f"Clients: {clients}")
-            print("----------")
-
-        print("==============================")
         df_mapping, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
-            feature_groups, df_mapping, processed_dir, n_components=cfg.experiment.num_pca_components)
+            client_names=names,
+            features_list=gdlc_features_mapping,
+            df_list=df_mapping,
+            output_folder=processed_dir,
+            n_components=cfg.experiment.num_pca_components
+        )
 
         with open(os.path.join(processed_dir, "pca_results.json"), "w") as f:
             json.dump(pca_results, f, cls=NumpyEncoder)
