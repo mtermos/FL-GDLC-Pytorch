@@ -164,5 +164,6 @@ cython_debug/
 datasets/
 temp/
 logs/
+lightning_logs/
 
 local_variables.py

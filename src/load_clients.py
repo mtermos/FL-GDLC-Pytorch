@@ -24,18 +24,18 @@ def load_clients(cfg):
         clients_data, test_data, input_dim = create_clients(base_cfg, cfg)
 
     if base_cfg.training.multi_class:
-        label_col = base_cfg.datasets.class_col
+        label_col = base_cfg.datasets.class_num_col
     else:
         label_col = base_cfg.datasets.label_col
 
     clients_labels = []
     for client in clients_data:
         clients_labels.append(client[label_col])
-        client.drop(columns=base_cfg.datasets.drop_columns + [base_cfg.datasets.class_col, base_cfg.datasets.class_num_col, base_cfg.datasets.label_col],
+        client.drop(columns=base_cfg.datasets.drop_columns + [base_cfg.datasets.class_col, base_cfg.datasets.class_num_col, base_cfg.datasets.label_col] + base_cfg.datasets.weak_columns,
                     inplace=True, errors='ignore')
 
     test_labels = test_data[label_col]
-    test_data.drop(columns=base_cfg.datasets.drop_columns + [base_cfg.datasets.class_col, base_cfg.datasets.class_num_col, base_cfg.datasets.label_col],
+    test_data.drop(columns=base_cfg.datasets.drop_columns + [base_cfg.datasets.class_col, base_cfg.datasets.class_num_col, base_cfg.datasets.label_col] + base_cfg.datasets.weak_columns,
                    inplace=True, errors='ignore')
 
     input_dim = clients_data[0].shape[1]

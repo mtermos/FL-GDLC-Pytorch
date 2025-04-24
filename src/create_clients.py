@@ -38,39 +38,32 @@ def _process_dataset(df, dataset):
     return df
 
 
-def _process_client_data(client_df, dataset, client_name, cfg, processed_dir, features_list):
+def _process_partition_data(partition_df, dataset, partition_name, cfg, processed_dir):
     G = nx.from_pandas_edgelist(
-        client_df,
+        partition_df,
         source=dataset.src_ip_col,
         target=dataset.dst_ip_col,
         create_using=nx.DiGraph()
     )
 
+    gdlc_features = None
     if cfg.experiment.type == "pca_gdlc":
-        network_features = add_gdlc_centralities(
-            client_df, dataset=dataset, G=G)
-        features_list[client_name] = network_features
+        gdlc_features = add_gdlc_centralities(
+            partition_df, dataset=dataset, G=G)
     elif cfg.experiment.type in ["all_centralities", "selected_centralities"]:
-        add_centralities(client_df, new_path=None, graph_path=None, dataset=dataset,
+        add_centralities(partition_df, new_path=None, graph_path=None, dataset=dataset,
                          cn_measures=cfg.centralities, network_features=cfg.network_features, G=G)
 
-    calculate_df_properties(client_df, G, dataset, processed_dir, client_name)
-    return G
+    calculate_df_properties(partition_df, G, dataset,
+                            processed_dir, partition_name)
+    return gdlc_features
 
 
-def _save_dataframes(df_list, test_df, names, processed_dir, cfg, dataset, G):
-    if cfg.experiment.type == "baseline":
-        test_df.to_parquet(os.path.join(processed_dir, "test.parquet"))
-        for name in names:
-            df_list[name].to_parquet(os.path.join(
-                processed_dir, f"{name}.parquet"))
-    else:
-        add_centralities(test_df, new_path=None, graph_path=None, dataset=dataset,
-                         cn_measures=cfg.centralities, network_features=cfg.network_features, G=G)
-        test_df.to_parquet(os.path.join(processed_dir, "test.parquet"))
-        for name in names:
-            df_list[name].to_parquet(os.path.join(
-                processed_dir, f"{name}.parquet"))
+def _save_dataframes(df_list, test_df, names, processed_dir):
+    test_df.to_parquet(os.path.join(processed_dir, "test.parquet"))
+    for name in names:
+        df_list[name].to_parquet(os.path.join(
+            processed_dir, f"{name}.parquet"))
 
 
 def create_clients(base_cfg, cfg):
@@ -103,8 +96,8 @@ def create_clients(base_cfg, cfg):
     clients_count = 0
     test_df_list = []
     names = []
-    df_list = {}
-    features_list = {}
+    df_mapping = {}
+    pca_features_mapping = {}
 
     for dataset_properties in base_cfg.datasets.datasets_list:
         dataset = dataset_properties.dataset_properties
@@ -123,26 +116,25 @@ def create_clients(base_cfg, cfg):
         for client_df in np.array_split(clients_df, dataset.num_clients):
             client_name = f"client_{clients_count}"
             names.append(client_name)
-            _process_client_data(
-                client_df, dataset, client_name, cfg, processed_dir, features_list)
-            df_list[client_name] = client_df
+            pca_features = _process_partition_data(
+                client_df, dataset, client_name, cfg, processed_dir)
+            pca_features_mapping[client_name] = pca_features
+            df_mapping[client_name] = client_df
             clients_count += 1
 
     # Process test data
     test_df = pd.concat(test_df_list)
-    G = nx.from_pandas_edgelist(test_df, source=dataset.src_ip_col,
-                                target=dataset.dst_ip_col, create_using=nx.DiGraph())
-    calculate_df_properties(test_df, G, dataset, processed_dir, "test")
+    pca_features = _process_partition_data(
+        test_df, dataset, "test", cfg, processed_dir)
+    pca_features_mapping["test"] = pca_features
 
     # Handle PCA specific processing
     if cfg.experiment.type == "pca_gdlc":
         names.append("test")
-        network_features = add_gdlc_centralities(test_df, dataset=dataset, G=G)
-        features_list["test"] = network_features
-        df_list["test"] = test_df
+        df_mapping["test"] = test_df
 
         feature_groups = defaultdict(list)
-        for client_path, features in features_list.items():
+        for client_path, features in pca_features_mapping.items():
             feature_groups[frozenset(features)].append(client_path)
 
         print("==============================")
@@ -153,18 +145,19 @@ def create_clients(base_cfg, cfg):
             print("----------")
 
         print("==============================")
-        df_list, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
-            feature_groups, df_list, processed_dir, n_components=cfg.experiment.num_pca_components)
+        df_mapping, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
+            feature_groups, df_mapping, processed_dir, n_components=cfg.experiment.num_pca_components)
 
         with open(os.path.join(processed_dir, "pca_results.json"), "w") as f:
             json.dump(pca_results, f, cls=NumpyEncoder)
 
-        test_df = df_list["test"]
+        test_df = df_mapping.pop("test")
         names.remove("test")
-        df_list = [df_list[key] for key in names if key in df_list]
 
     # Save final dataframes
-    _save_dataframes(df_list, test_df, names, processed_dir, cfg, dataset, G)
+    _save_dataframes(df_mapping, test_df, names, processed_dir)
 
-    input_dim = df_list["client_0"].shape[1]
+    df_list = [df_mapping[key] for key in names if key in df_mapping]
+
+    input_dim = df_list[0].shape[1]
     return df_list, test_df, input_dim

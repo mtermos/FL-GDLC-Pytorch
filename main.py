@@ -10,6 +10,15 @@ from src.load_clients import load_clients
 from src.fl.fl_server import generate_server_fn
 from src.fl.generate_client_fn import generate_client_fn
 from src.models.init_model import init_model
+import warnings
+import wandb
+
+# Suppress the “does not have many workers” UserWarning
+warnings.filterwarnings(
+    "ignore",
+    message=".*does not have many workers.*",
+    category=UserWarning,
+)
 
 
 def load_config(config_name="exp1/base_config"):
@@ -19,7 +28,12 @@ def load_config(config_name="exp1/base_config"):
 
 
 def main(experiment, exp_type):
-
+    print("==================================")
+    print("==================================")
+    print("==================================")
+    print(f"==>> experiment: {experiment}")
+    print(f"==>> exp_type: {exp_type}")
+    os.environ["RAY_DEDUP_LOGS"] = "0"
     DEVICE = torch.device("cpu")
 
     cfg = load_config(os.path.join(experiment, f"{exp_type}"))
@@ -61,29 +75,50 @@ def main(experiment, exp_type):
         c_model = init_model(
             cfg.base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
         client_app = ClientApp(client_fn=generate_client_fn(
-            clients_data, clients_labels, c_model, model_name, cfg, config))
+            clients_data, clients_labels, c_model, model_name, cfg, config, run_dtime))
 
         s_model = init_model(
             cfg.base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
         server_app = ServerApp(server_fn=generate_server_fn(
-            test_data, test_labels, s_model, model_name, cfg, config))
+            test_data, test_labels, s_model, model_name, cfg, config, run_dtime))
 
-        backend_config = {"client_resources": None}
+        backend_config = {
+            "client_resources": {"num_cpus": 1},
+            "actor": {
+                "max_restarts": 0,      # disable automatic restarts
+                "max_task_retries": 0,  # likewise for individual tasks
+            }
+        }
         if DEVICE.type == "cuda":
-            backend_config = {"client_resources": {"num_gpus": 1}}
-
+            backend_config = {
+                "client_resources": {"num_gpus": 1, "num_cpus": 1},
+                "actor": {
+                    "max_restarts": 0,      # disable automatic restarts
+                    "max_task_retries": 0,  # likewise for individual tasks
+                }
+            }
         run_simulation(
             server_app=server_app,
             client_app=client_app,
             num_supernodes=cfg.base.fl.num_clients,
             backend_config=backend_config,
         )
+        wandb.finish()
 
 
 if __name__ == "__main__":
     experiment = "exp1_small"
-    exp_type = "baseline"
+    # experiment = "exp1"
+    exp_types = [
+        "baseline",
+        "selected_centralities",
+        "all_centralities",
+        "pca_gdlc"
+    ]
+    # exp_type = "baseline"
     # exp_type = "selected_centralities"
     # exp_type = "all_centralities"
     # exp_type = "pca_gdlc"
-    main(experiment, exp_type)
+
+    for exp_type in exp_types:
+        main(experiment, exp_type)

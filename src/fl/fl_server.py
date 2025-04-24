@@ -5,7 +5,7 @@ from src.fl.get_on_fit_config import get_on_fit_config
 from flwr.common import Context
 
 
-def generate_server_fn(data, labels, model, model_name, cfg, config_to_add_to_logger):
+def generate_server_fn(data, labels, model, model_name, cfg, config_to_add_to_logger, run_dtime):
     def server_fn(context: Context):
         strategy = FedAvg(
             fraction_fit=cfg.base.fl.fraction_fit,
@@ -22,6 +22,7 @@ def generate_server_fn(data, labels, model, model_name, cfg, config_to_add_to_lo
                 model_name,
                 cfg,
                 config_to_add_to_logger,
+                run_dtime
             ),
             fit_metrics_aggregation_fn=lambda metrics: {
                 "val_acc": sum(m["val_acc"] for _, m in metrics) / len(metrics),

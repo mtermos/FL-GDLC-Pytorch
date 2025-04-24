@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from src.models.activations import ACTIVATIONS
+from src.models.normalization_layers import ChannelLayerNorm
 
 
 class CNN(nn.Module):
@@ -24,6 +25,8 @@ class CNN(nn.Module):
             conv_layers.append(self.cnn_activation())
             if model_cfg.cnn.batch_norm:
                 conv_layers.append(nn.BatchNorm1d(filter))
+            if model_cfg.cnn.layer_norm:
+                conv_layers.append(ChannelLayerNorm(filter))
             if model_cfg.cnn.dropout:
                 conv_layers.append(nn.Dropout(model_cfg.cnn.dropout_rate))
             in_channels = filter
@@ -40,12 +43,14 @@ class CNN(nn.Module):
 
         fc_layers = []
         for hidden_dim in model_cfg.dense.units:
-            fc_layers .append(nn.Linear(input_dim, hidden_dim))
-            fc_layers .append(self.dense_activation())
+            fc_layers.append(nn.Linear(input_dim, hidden_dim))
+            fc_layers.append(self.dense_activation())
             if model_cfg.dense.batch_norm:
-                fc_layers .append(nn.BatchNorm1d(hidden_dim))
+                fc_layers.append(nn.BatchNorm1d(hidden_dim))
+            if model_cfg.dense.layer_norm:
+                fc_layers.append(nn.LayerNorm(hidden_dim))
             if model_cfg.dense.dropout:
-                fc_layers .append(nn.Dropout(model_cfg.dense.dropout_rate))
+                fc_layers.append(nn.Dropout(model_cfg.dense.dropout_rate))
             input_dim = hidden_dim
 
         fc_layers .append(nn.Linear(input_dim, num_classes))

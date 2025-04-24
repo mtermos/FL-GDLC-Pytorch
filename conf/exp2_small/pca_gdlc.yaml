@@ -1,0 +1,23 @@
+# pca_gdlc experiment configuration
+defaults:
+  - _self_
+  - exp2_small/base_config@base
+
+
+experiment:
+  exp: "exp2_small"
+  type: "pca_gdlc"
+  description: "PCA_GDLC experiment with basic CNN model"
+  num_pca_components: 3
+  
+additional_columns:
+  pca_columns:
+    - "global_pca_1"
+    - "global_pca_2"
+    - "global_pca_3"
+
+logging:
+  wandb:
+    name: "pca_gdlc_cnn"
+    additional_tags: ["pca_gdlc", "cnn"]
+    save_dir: "logs/wandb_runs"

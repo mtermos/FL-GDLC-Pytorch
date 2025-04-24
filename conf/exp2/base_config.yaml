@@ -4,7 +4,7 @@ defaults:
 random_seed: 42
 
 training:
-  multi_class: true
+  multi_class: false
   batch_size: 256
   max_epochs: 2
       
@@ -21,39 +21,35 @@ training:
 
 
 fl:
-  num_rounds: 15
+  num_rounds: 50
   fraction_fit: 1.0
   fraction_evaluate: 1.0
-  # num_clients: 2
-  # min_fit_clients: 2
-  # min_evaluate_clients: 2
-  # min_available_clients: 2
-  num_clients: 8
-  min_fit_clients: 8
-  min_evaluate_clients: 8
-  min_available_clients: 8
+  num_clients: 5
+  min_fit_clients: 5
+  min_evaluate_clients: 5
+  min_available_clients: 5
 
 models:
   - mlp
-  - cnn
+  # - cnn
   # - cnn_lstm
 
 logging:
   selected_type: "wandb"
   wandb:
-    project: "FL-GDLC-exp1-small"
+    project: "FL-GDLC-exp2"
     entity: "mtermos-cesi"
-    tags: ["exp1_small", "cic_ton_iot_5_percent", "cic_ids_2017_5_percent"]
+    tags: ["exp2", "cic_ton_iot"]
     save_dir: "logs/wandb_runs"
   tensorboard:
-    project: "FL-GDLC-exp1-small"
+    project: "FL-GDLC-exp2"
     save_dir: "logs/tensorboard_runs"
 
 datasets:
   datasets_list:
     - dataset_properties:
-        name: "cic_ton_iot_5_percent"
-        raw: "cic_ton_iot_5_percent.parquet"
+        name: "cic_ton_iot"
+        raw: "cic_ton_iot.parquet"
         raw_type: "parquet"
         num_clients: 5
         global_test_size: 0.1
@@ -114,75 +110,7 @@ datasets:
           - Bwd Pkt Len Std
           - Fwd Pkt Len Mean
 
-    - dataset_properties:
-        name: "cic_ids_2017_5_percent"
-        raw: "cic_ids_2017_5_percent.parquet"
-        raw_type: "parquet"
-        num_clients: 3
-        global_test_size: 0.1
-        src_ip_col: "Src IP"
-        dst_ip_col: "Dst IP"
-        timestamp_col: "Timestamp"
-        flow_id_col: "Flow ID"
-        timestamp_format: "%d/%m/%Y %I:%M:%S %p"
-        label_col: "Label"
-        class_col: "Attack"
-        class_num_col: "Class"
-        drop_columns:
-          - Flow ID
-          - Src IP
-          - Dst IP
-          - Timestamp
-          - Src Port
-          - Dst Port
-          - Attack
-        weak_columns:
-          - Bwd PSH Flags
-          - Bwd URG Flags
-          - Fwd Byts/b Avg
-          - Fwd Pkts/b Avg
-          - Fwd Blk Rate Avg
-          - Bwd Byts/b Avg
-          - Bwd Pkts/b Avg
-          - Bwd Blk Rate Avg
-          - Fwd IAT Min
-          - Idle Max
-          - Flow IAT Mean
-          - Protocol
-          - Fwd Pkt Len Max
-          - Flow IAT Max
-          - Active Std
-          - Subflow Fwd Pkts
-          - Bwd Pkt Len Mean
-          - Tot Bwd Pkts
-          - Pkt Size Avg
-          - Subflow Bwd Pkts
-          - Bwd IAT Std
-          - Fwd IAT Mean
-          - Fwd Pkt Len Std
-          - Pkt Len Mean
-          - Flow IAT Std
-          - Fwd URG Flags
-          - TotLen Bwd Pkts
-          - Bwd Pkt Len Max
-          - Pkt Len Var
-          - Tot Fwd Pkts
-          - Bwd IAT Mean
-          - TotLen Fwd Pkts
-          - Fwd PSH Flags
-          - Idle Mean
-          - Pkt Len Max
-          - Flow Pkts/s
-          - Flow Duration
-          - Pkt Len Std
-          - Fwd IAT Max
-          - Fwd IAT Tot
-          - RST Flag Cnt
-          - Subflow Bwd Byts
-          - Active Mean
-          - Bwd Pkt Len Std
-          - Fwd Pkt Len Mean
-  processed_dir: "datasets/exp1_small"
+  processed_dir: "datasets/exp2"
   label_col: "Label"
   class_col: "Attack"
   class_num_col: "Class"

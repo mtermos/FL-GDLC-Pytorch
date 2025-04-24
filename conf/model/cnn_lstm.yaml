@@ -15,7 +15,8 @@ cnn:
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
-  batch_norm: true
+  batch_norm: false
+  layer_norm: true
 
 # LSTM layers
 lstm:
@@ -23,7 +24,8 @@ lstm:
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
-  batch_norm: true
+  batch_norm: false
+  layer_norm: false
 
 # Dense layers
 dense:
@@ -31,4 +33,5 @@ dense:
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
-  batch_norm: true
+  batch_norm: false
+  layer_norm: true

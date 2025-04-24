@@ -2,11 +2,14 @@ import torch
 import torch.nn as nn
 
 from src.models.activations import ACTIVATIONS
+from src.models.normalization_layers import ChannelLayerNorm, SequenceNorm1d
 
 
 class CNNLSTM(nn.Module):
     def __init__(self, model_cfg, num_features, num_classes):
         super().__init__()
+
+        self.model_cfg = model_cfg
 
         self.cnn_activation = ACTIVATIONS[model_cfg.cnn.activation]
         self.lstm_activation = ACTIVATIONS[model_cfg.lstm.activation]
@@ -26,6 +29,8 @@ class CNNLSTM(nn.Module):
             conv_layers.append(self.cnn_activation())
             if model_cfg.cnn.batch_norm:
                 conv_layers.append(nn.BatchNorm1d(filter))
+            if model_cfg.cnn.layer_norm:
+                conv_layers.append(ChannelLayerNorm(filter))
             if model_cfg.cnn.dropout:
                 conv_layers.append(nn.Dropout(model_cfg.cnn.dropout_rate))
             in_channels = filter
@@ -34,6 +39,7 @@ class CNNLSTM(nn.Module):
 
         self.lstm_layers = nn.ModuleList()
         self.lstm_activations = nn.ModuleList()
+        self.lstm_normalization = nn.ModuleList()
         lstm_input_size = filter
 
         for hidden_dim in model_cfg.lstm.hidden_size:
@@ -49,6 +55,16 @@ class CNNLSTM(nn.Module):
             )
             if self.lstm_activation:
                 self.lstm_activations.append(self.lstm_activation())
+
+            self.lstm_normalization.append(
+                SequenceNorm1d(
+                    dim=hidden_dim,
+                    use_batch_norm=model_cfg.lstm.batch_norm,
+                    use_layer_norm=model_cfg.lstm.layer_norm,
+                    # e.g. momentum=0.1, eps=1e-5 if you want custom BN args
+                )
+            )
+
             lstm_input_size = hidden_dim
 
         # after LSTM, we'll take the last hidden‐state, so our
@@ -61,6 +77,8 @@ class CNNLSTM(nn.Module):
             fc_layers .append(self.dense_activation())
             if model_cfg.dense.batch_norm:
                 fc_layers .append(nn.BatchNorm1d(hidden_dim))
+            if model_cfg.dense.layer_norm:
+                fc_layers.append(nn.LayerNorm(hidden_dim))
             if model_cfg.dense.dropout:
                 fc_layers .append(nn.Dropout(model_cfg.dense.dropout_rate))
             input_dim = hidden_dim
@@ -78,8 +96,12 @@ class CNNLSTM(nn.Module):
         # pass through each LSTM layer
         for i, lstm in enumerate(self.lstm_layers):
             x, _ = lstm(x)                    # x: [batch, L, hidden_dim_i]
+
             if i < len(self.lstm_activations):
                 x = self.lstm_activations[i](x)
+
+            if len(self.lstm_normalization) > i:
+                x = self.lstm_normalization[i](x)
 
         # grab last time step
         x = x[:, -1, :]                       # → [batch, hidden_dim_last]

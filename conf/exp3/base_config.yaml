@@ -3,71 +3,50 @@ defaults:
 
 random_seed: 42
 
+training:
+  multi_class: false
+  batch_size: 256
+  max_epochs: 2
+      
+  optimizer: "adam"
+  learning_rate: 0.005
+  lr_decay: true
+  lr_decay_rate: 0.05
+  weight_decay: 0.001
+
+  LAMBD_2: 0.01
+  dropout: true
+  dropout_rate: 0.2
+  batch_norm: true 
+
+
+fl:
+  num_rounds: 50
+  fraction_fit: 1.0
+  fraction_evaluate: 1.0
+  num_clients: 3
+  min_fit_clients: 3
+  min_evaluate_clients: 3
+  min_available_clients: 3
+
+models:
+  - mlp
+  - cnn
+  # - cnn_lstm
+
+logging:
+  selected_type: "wandb"
+  wandb:
+    project: "FL-GDLC-exp3"
+    entity: "mtermos-cesi"
+    tags: ["exp3", "cic_ids_2017"]
+    save_dir: "logs/wandb_runs"
+  tensorboard:
+    project: "FL-GDLC-exp3"
+    save_dir: "logs/tensorboard_runs"
+
 datasets:
   datasets_list:
-    - dataset_properties:
-        name: "cic_ton_iot"
-        raw: "cic_ton_iot.parquet"
-        raw_type: "parquet"
-        num_clients: 5
-        global_test_size: 0.1
-        src_ip_col: "Src IP"
-        dst_ip_col: "Dst IP" 
-        timestamp_col: "Timestamp"
-        flow_id_col: "Flow ID"
-        timestamp_format: "%d/%m/%Y %I:%M:%S %p"
-        label_col: "Label"
-        class_col: "Attack"
-        class_num_col: "Class"
-        drop_columns:
-          - Flow ID
-          - Src IP
-          - Dst IP
-          - Timestamp
-          - Src Port
-          - Dst Port
-          - Attack
-        weak_columns:
-          - Bwd PSH Flags
-          - Fwd URG Flags
-          - Bwd URG Flags
-          - URG Flag Cnt
-          - Fwd Byts/b Avg
-          - Fwd Pkts/b Avg
-          - Fwd Blk Rate Avg
-          - Subflow Bwd Pkts
-          - Flow IAT Mean
-          - Fwd Pkt Len Max
-          - Flow IAT Max
-          - Active Std
-          - Bwd Header Len
-          - Tot Bwd Pkts
-          - Bwd Pkt Len Mean
-          - Pkt Size Avg
-          - Fwd Seg Size Avg
-          - Bwd Seg Size Avg
-          - CWE Flag Count
-          - Bwd IAT Tot
-          - Fwd IAT Mean
-          - Fwd Pkt Len Std
-          - Pkt Len Mean
-          - Flow IAT Min
-          - TotLen Bwd Pkts
-          - Bwd Pkt Len Max
-          - Pkt Len Var
-          - FIN Flag Cnt
-          - Bwd IAT Mean
-          - Idle Mean
-          - Pkt Len Max
-          - Flow Pkts/s
-          - Flow Duration
-          - Pkt Len Std
-          - Fwd IAT Tot
-          - PSH Flag Cnt
-          - Active Mean
-          - Bwd Pkt Len Std
-          - Fwd Pkt Len Mean
-
     - dataset_properties:
         name: "cic_ids_2017"
         raw: "cic_ids_2017.parquet"
@@ -136,7 +115,8 @@ datasets:
           - Active Mean
           - Bwd Pkt Len Std
           - Fwd Pkt Len Mean
-  processed_dir: "datasets/exp1"
+  
+  processed_dir: "datasets/exp3"
   label_col: "Label"
   class_col: "Attack"
   class_num_col: "Class"
@@ -172,50 +152,3 @@ datasets:
     - Fwd Blk Rate Avg
     - Active Mean
     - Idle Mean
-
-training:
-  multi_class: true
-  batch_size: 256
-  max_epochs: 3
-      
-  optimizer: "adam"
-  learning_rate: 0.001
-  lr_decay: true
-  lr_decay_rate: 0.5
-  weight_decay: 0.01
-
-  LAMBD_2: 0.01
-  dropout: true
-  dropout_rate: 0.5
-  batch_norm: true 
-
-
-fl:
-  num_rounds: 15
-  fraction_fit: 1.0
-  fraction_evaluate: 1.0
-  # num_clients: 2
-  # min_fit_clients: 2
-  # min_evaluate_clients: 2
-  # min_available_clients: 2
-  num_clients: 8
-  min_fit_clients: 8
-  min_evaluate_clients: 8
-  min_available_clients: 8
-
-models:
-  # - mlp
-  - cnn
-  # - cnn_lstm
-
-logging:
-  selected_type: "wandb"
-  wandb:
-    project: "FL-GDLC-exp1"
-    entity: "mtermos-cesi"
-    tags: ["exp1", "cic_ton_iot", "cic_ids_2017"]
-    save_dir: "logs/wandb_runs"
-  tensorboard:
-    project: "FL-GDLC-exp1"
-    save_dir: "logs/tensorboard_runs"
-

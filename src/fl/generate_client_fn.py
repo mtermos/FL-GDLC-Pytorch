@@ -1,5 +1,8 @@
 import time
 import numpy as np
+import logging
+from logging import StreamHandler, Formatter
+
 from sklearn.model_selection import train_test_split
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from flwr.common import Context
@@ -8,19 +11,15 @@ from src.data.data_module import FLDataModule
 from src.fl.fl_client import FLClient
 
 
-def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_logger):
+def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_logger, run_dtime):
+
     def client_fn(context: Context):
         client_id = int(context.node_config["partition-id"])
 
         if client_id in [0, 5]:
-            print(f"==>> client_id: {client_id}")
             logging_type = cfg.base.logging.selected_type
         else:
-            print(f"==>> tensorboard client_id: {client_id}")
             logging_type = "tensorboard"
-
-        print(f"==>> logging_type: {logging_type}")
-        print("======================")
 
         logging_cfg = cfg.base.logging[logging_type]
 
@@ -28,6 +27,7 @@ def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_lo
             logger = WandbLogger(
                 project=logging_cfg.project,
                 config=config_to_add_to_logger,
+                version=f"{run_dtime}_{model_name}_{client_id}",
                 name=f"{cfg.experiment.type}_{model_name}_client_{client_id}",
                 save_dir=f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{cfg.experiment.type}_{model_name}_client_{client_id}"
             )
