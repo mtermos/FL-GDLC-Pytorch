@@ -1,151 +1,139 @@
-import os
 import numpy as np
 import pandas as pd
+import logging
+from typing import Dict, List, Tuple
+from dataclasses import dataclass, field
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error
 
-# Function to calculate local PCA from a single client's DataFrame.
+# Configure module-level logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-def _calculate_local_pca(df, cn_measures, n_components=2):
-    # Keep only the centrality measures that actually exist in the DataFrame.
-    existing_measures = [
-        measure for measure in cn_measures if measure in df.columns]
-    if not existing_measures:
-        raise ValueError(
-            "No valid centrality measures found in DataFrame columns.")
-
-    # Prepare data by filling missing values.
-    centrality_data = df[existing_measures].fillna(0)
-    scaler = StandardScaler()
-    centrality_data_std = scaler.fit_transform(centrality_data)
-    pca = PCA(n_components=n_components)
-    centrality_data_pca = pca.fit_transform(centrality_data_std)
-    explained_variance = pca.explained_variance_ratio_
-    return centrality_data_pca, explained_variance, scaler.mean_, scaler.scale_, pca.components_
-
-# Calculate covariance of the PCA-transformed data.
+def compute_rmse(actual: np.ndarray, predicted: np.ndarray) -> float:
+    """
+    Compute root-mean-square error between two arrays.
+    """
+    return float(np.sqrt(mean_squared_error(actual, predicted)))
 
 
-def _calculate_local_covariance(pca_results):
-    return np.cov(pca_results, rowvar=False)
+@dataclass
+class FederatedPCAClient:
+    """
+    Encapsulates local and global PCA operations for a single client.
+    """
+    name: str
+    df: pd.DataFrame
+    n_components: int = 2
+    local_scores: np.ndarray = field(init=False)
+    scaler_local: StandardScaler = field(init=False)
+    global_scores: np.ndarray = field(init=False)
+    scaler_global: StandardScaler = field(init=False)
 
-# Combine local covariance matrices to compute the global principal components.
+    def compute_local_pca(self) -> np.ndarray:
+        """
+        Perform local PCA.
+        Returns the covariance matrix of the local PCA scores.
+        """
+
+        self.df.fillna(0, inplace=True)
+        self.scaler_local = StandardScaler()
+        X_std = self.scaler_local.fit_transform(self.df)
+        pca = PCA(n_components=self.n_components)
+        self.local_scores = pca.fit_transform(X_std)
+
+        # Return covariance of local PCA scores
+        return np.cov(self.local_scores, rowvar=False)
+
+    def apply_global_pca(self, global_components: np.ndarray) -> np.ndarray:
+        """
+        Project local PCA scores into the global PCA subspace and standardize.
+        """
+        transformed = self.local_scores.dot(global_components)
+        self.scaler_global = StandardScaler().fit(transformed)
+        self.global_scores = self.scaler_global.transform(transformed)
+        return self.global_scores
 
 
-def _apply_global_pca(local_covariances, n_components):
-    global_covariance_matrix = np.mean(local_covariances, axis=0)
-    eigen_values, eigen_vectors = np.linalg.eigh(global_covariance_matrix)
-    sorted_indices = np.argsort(eigen_values)[::-1]
-    global_principal_components = eigen_vectors[:,
-                                                sorted_indices][:, :n_components]
-    return global_principal_components
+def process_clients_with_grouped_pca_rmse(
+        dfs_dict: Dict[str, pd.DataFrame],
+        n_components: int = 2
+) -> Tuple[Dict[str, pd.DataFrame], Dict[str, Dict[str, float]], List[str]]:
+    """
+    Perform two-stage federated PCA with RMSE-based reconstruction errors.
 
+    Returns:
+        client_dfs: final DataFrames per client with 'global_pca_*' columns.
+        errors: dictionary with 'reconstruction_errors_local' and 'reconstruction_errors_federated'.
+        pca_columns: list of names for global PCA columns.
+    """
 
-def process_clients_with_grouped_pca_rmse(client_names, features_list, df_list, output_folder, n_components=2):
+    # Local stage: compute per-client covariance
+    clients = []
+    cov_matrices = []
 
-    os.makedirs(output_folder, exist_ok=True)
+    for name, df in dfs_dict.items():
+        logger.info("Computing local PCA for client %s", name)
+        client = FederatedPCAClient(
+            name=name,
+            df=df,
+            n_components=n_components
+        )
+        try:
+            cov = client.compute_local_pca()
+        except ValueError as e:
+            logger.warning(str(e))
+            continue
+        clients.append(client)
+        cov_matrices.append(cov)
 
-    all_local_pca_results = []
-    local_covariances = []
-    client_dfs = {}
-    local_explained_variances = {}
+    if not cov_matrices:
+        raise RuntimeError("No valid clients for PCA.")
 
+    # Global stage: aggregate and compute shared components
+    global_cov = np.mean(cov_matrices, axis=0)
+    eigvals, eigvecs = np.linalg.eigh(global_cov)
+    top_indices = np.argsort(eigvals)[::-1][:n_components]
+    global_components = eigvecs[:, top_indices]
+
+    # Prepare outputs
     reconstruction_errors_local = {}
     reconstruction_errors_federated = {}
+    pca_columns = [f"global_pca_{i+1}" for i in range(n_components)]
 
-    # Process each client individually.
-    for client in client_names:
-        print(f"Processing client: {client}")
-        # Get the client's DataFrame and feature list.
-        df = df_list[client]
-        client_features = features_list[client]
+    # Apply global PCA, compute RMSE, and save results
+    for client in clients:
+        logger.info("Applying global PCA for client %s", client.name)
+        G = client.apply_global_pca(global_components)
 
-        # Identify centrality measures present in the client's DataFrame.
-        client_cn_measures = [
-            measure for measure in client_features if measure in df.columns]
-        if len(client_cn_measures) == 0:
-            print(f"No centrality measures found for client {client}.")
-            continue
+        # Build final DataFrame
+        client.df = pd.DataFrame(G, columns=pca_columns, index=client.df.index)
 
-        # Compute the local PCA for this client.
-        try:
-            centrality_data_pca, explained_variance, mean, scale, pca_components = _calculate_local_pca(
-                df, client_cn_measures, n_components
-            )
-        except ValueError as e:
-            print(f"Error processing client {client}: {e}")
-            continue
+        # Compute RMSE metrics
+        Z_std = client.df.dot(global_components)
+        Z_std = client.scaler_global.transform(Z_std)
 
-        all_local_pca_results.append(centrality_data_pca)
-        local_explained_variances[client] = explained_variance
+        rmse_loc = compute_rmse(
+            client.scaler_global.transform(client.local_scores),
+            client.scaler_global.transform(
+                client.local_scores.dot(global_components.T))
+        )
+        rmse_fed = compute_rmse(
+            client.scaler_global.transform(client.local_scores), G
+        )
+        reconstruction_errors_local[client.name] = rmse_loc
+        reconstruction_errors_federated[client.name] = rmse_fed
 
-        df.drop(columns=client_cn_measures, inplace=True)
+        logger.info(
+            "Client %s errors: local RMSE=%.4f, federated RMSE=%.4f",
+            client.name, rmse_loc, rmse_fed
+        )
 
-        # Compute covariance matrix of the local PCA results.
-        local_covariance_matrix = _calculate_local_covariance(
-            centrality_data_pca)
-        local_covariances.append(local_covariance_matrix)
-
-        # Create a temporary DataFrame with local PCA results.
-        pca_columns = [f'pca_{i+1}' for i in range(n_components)]
-        local_pca_df = pd.DataFrame(
-            centrality_data_pca, columns=pca_columns, index=df.index)
-        df = pd.concat([df, local_pca_df], axis=1)
-        client_dfs[client] = df
-
-    # Compute global principal components using the average of local covariances.
-    global_principal_components = _apply_global_pca(
-        local_covariances, n_components)
-
-    scaler_post_pca = StandardScaler()
-
-    # Process each client's DataFrame for global transformation.
-    for client, df in client_dfs.items():
-        local_pca_data = df[[f'pca_{i+1}' for i in range(n_components)]].values
-
-        # Apply global PCA using the obtained global principal components.
-        global_pca_transformed = np.dot(
-            local_pca_data, global_principal_components)
-        global_pca_transformed_std = scaler_post_pca.fit_transform(
-            global_pca_transformed)
-
-        pca_columns = [f'global_pca_{j+1}' for j in range(n_components)]
-        global_pca_df = pd.DataFrame(
-            global_pca_transformed_std, columns=pca_columns, index=df.index)
-
-        # Replace local PCA columns with global PCA columns in the DataFrame.
-        final_df = pd.concat([df.drop(
-            columns=[f'pca_{i+1}' for i in range(n_components)]), global_pca_df], axis=1)
-
-        # Save the processed DataFrame to the output folder.
-        output_path = os.path.join(output_folder, f'{client}.parquet')
-        final_df.to_parquet(output_path)
-        print(
-            f'Processed federated PCA for client {client}, saved to {output_path}')
-
-        client_dfs[client] = final_df
-
-        # Compute reconstruction of the local PCA data using the global principal components.
-        local_reconstructed = np.dot(
-            local_pca_data, global_principal_components.T)
-        local_reconstructed_std = scaler_post_pca.transform(
-            local_reconstructed)
-
-        # Calculate RMSE errors for reconstruction.
-        rmse_local = np.sqrt(mean_squared_error(
-            scaler_post_pca.transform(local_pca_data), local_reconstructed_std))
-        rmse_federated = np.sqrt(mean_squared_error(
-            scaler_post_pca.transform(local_pca_data), global_pca_transformed_std))
-
-        reconstruction_errors_local[client] = rmse_local
-        reconstruction_errors_federated[client] = rmse_federated
-
-        print(f"Client {client} Local PCA RMSE: {rmse_local}")
-        print(f"Client {client} Federated PCA RMSE: {rmse_federated}")
-
-    return client_dfs, {
+    errors = {
         'reconstruction_errors_local': reconstruction_errors_local,
-        'reconstruction_errors_federated': reconstruction_errors_federated,
-    }, pca_columns
+        'reconstruction_errors_federated': reconstruction_errors_federated
+    }
+
+    return {client.name: client.df for client in clients}, errors, pca_columns

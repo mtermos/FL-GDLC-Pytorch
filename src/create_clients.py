@@ -127,13 +127,19 @@ def create_clients(base_cfg, cfg):
         names.append("test")
         df_mapping["test"] = test_df
 
-        df_mapping, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
-            client_names=names,
-            features_list=gdlc_features_mapping,
-            df_list=df_mapping,
-            output_folder=processed_dir,
+        gdlc_dfs_dict = {key: value[gdlc_features_mapping[key]]
+                         for key, value in df_mapping.items()}
+        pca_dfs_dict, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
+            dfs_dict=gdlc_dfs_dict,
             n_components=cfg.experiment.num_pca_components
         )
+
+        for name, df in pca_dfs_dict.items():
+            df_mapping[name] = pd.concat([
+                df_mapping[name].drop(
+                    columns=gdlc_features_mapping[name]),
+                df
+            ], axis=1)
 
         with open(os.path.join(processed_dir, "pca_results.json"), "w") as f:
             json.dump(pca_results, f, cls=NumpyEncoder)
