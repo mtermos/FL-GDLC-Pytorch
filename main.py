@@ -48,7 +48,7 @@ def main(experiment, exp_type):
     using_wandb = cfg.base.logging.selected_type == "wandb"
     # loading clients data
     clients_data, clients_labels, test_data, test_labels, input_dim, labels_mapping = load_clients(
-        cfg)
+        cfg.base, cfg)
 
     run_dtime = time.strftime("%Y%m%d-%H%M%S")
 

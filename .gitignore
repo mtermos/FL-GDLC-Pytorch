@@ -165,5 +165,6 @@ datasets/
 temp/
 logs/
 lightning_logs/
+tests/processed/
 
 local_variables.py

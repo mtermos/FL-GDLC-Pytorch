@@ -4,8 +4,7 @@ import pickle
 from src.create_clients import create_clients
 
 
-def load_clients(cfg):
-    base_cfg = cfg.base
+def load_clients(base_cfg, cfg):
     processed_dir = os.path.join(
         base_cfg.datasets.processed_dir, cfg.experiment.type)
     if os.path.exists(processed_dir) and os.path.exists(os.path.join(processed_dir, "test.parquet")):

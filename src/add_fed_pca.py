@@ -38,7 +38,7 @@ class FederatedPCAClient:
         Returns the covariance matrix of the local PCA scores.
         """
 
-        self.df.fillna(0, inplace=True)
+        self.df = self.df.fillna(0)
         self.scaler_local = StandardScaler()
         X_std = self.scaler_local.fit_transform(self.df)
         pca = PCA(n_components=self.n_components)
