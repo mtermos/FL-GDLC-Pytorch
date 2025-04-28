@@ -28,7 +28,7 @@ def load_config(config_name="exp1/base_config"):
         return cfg
 
 
-def main(experiment, exp_type):
+def main(experiment, exp_type, num_cpus):
     print("==================================")
     print("==================================")
     print("==================================")
@@ -83,10 +83,10 @@ def main(experiment, exp_type):
         server_app = ServerApp(server_fn=generate_server_fn(
             test_data, test_labels, s_model, model_name, cfg, config, run_dtime))
 
-        backend_config = {"client_resources": {"num_cpus": 1}}
+        backend_config = {"client_resources": {"num_cpus": num_cpus}}
         if DEVICE.type == "cuda":
             backend_config = {"client_resources": {
-                "num_gpus": 1, "num_cpus": 1}}
+                "num_gpus": 1, "num_cpus": num_cpus}}
         backend_config["actor"] = {
             "max_restarts": 0,      # disable automatic restarts
             "max_task_retries": 0,  # likewise for individual tasks
@@ -121,5 +121,6 @@ if __name__ == "__main__":
     # exp_type = "all_centralities"
     # exp_type = "pca_gdlc"
 
+    num_cpus = os.cpu_count()
     for exp_type in exp_types:
-        main(experiment, exp_type)
+        main(experiment, exp_type, num_cpus)
