@@ -1,6 +1,6 @@
 import time
 import numpy as np
-import logging
+import warnings
 from logging import StreamHandler, Formatter
 
 from sklearn.model_selection import train_test_split
@@ -14,6 +14,12 @@ from src.fl.fl_client import FLClient
 def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_logger, run_dtime):
 
     def client_fn(context: Context):
+        warnings.filterwarnings(
+            "ignore",
+            message=".*does not have many workers.*",
+            category=UserWarning,
+        )
+
         client_id = int(context.node_config["partition-id"])
 
         if client_id in [0, 5]:
