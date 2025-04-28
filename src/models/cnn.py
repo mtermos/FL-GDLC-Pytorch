@@ -16,10 +16,12 @@ class CNN(nn.Module):
 
         in_channels = 1
         for i, filter in enumerate(model_cfg.cnn.filters):
+            k = model_cfg.cnn.kernel_sizes[i]
             cnn = nn.Conv1d(
                 in_channels=in_channels,
                 out_channels=filter,
-                kernel_size=model_cfg.cnn.kernel_sizes[i],
+                kernel_size=k,
+                padding=(k - 1) // 2
             )
             conv_layers.append(cnn)
             conv_layers.append(self.cnn_activation())
