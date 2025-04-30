@@ -6,6 +6,8 @@ model:
 layers:
 - dense
 
+input_layer_norm: false
+
 dense:
   # units: [100, 80]
   # units: [200, 100, 80]

@@ -7,6 +7,11 @@ class MLP(nn.Module):
     def __init__(self, model_cfg, num_features, num_classes):
         super().__init__()
 
+        if model_cfg.input_layer_norm:
+            self.input_norm = nn.LayerNorm(num_features)
+        else:
+            self.input_norm = nn.Identity()
+
         self.dense_activation = ACTIVATIONS[model_cfg.dense.activation]
 
         layers = []
@@ -27,4 +32,5 @@ class MLP(nn.Module):
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
+        x = self.input_norm(x)
         return self.network(x)

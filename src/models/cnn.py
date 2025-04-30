@@ -9,6 +9,11 @@ class CNN(nn.Module):
     def __init__(self, model_cfg, num_features, num_classes):
         super().__init__()
 
+        if model_cfg.input_layer_norm:
+            self.input_norm = nn.LayerNorm(num_features)
+        else:
+            self.input_norm = nn.Identity()
+
         self.cnn_activation = ACTIVATIONS[model_cfg.cnn.activation]
         self.dense_activation = ACTIVATIONS[model_cfg.dense.activation]
 
@@ -60,6 +65,7 @@ class CNN(nn.Module):
         self.classifier = nn.Sequential(*fc_layers)
 
     def forward(self, x):
+        x = self.input_norm(x)
         x = x.view(x.size(0), 1, x.size(1))
         # print(f"==>> x.shape: {x.shape}")
         x = self.features(x)

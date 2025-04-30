@@ -40,13 +40,18 @@ def main(experiment, exp_type, models, num_cpus):
     os.makedirs(
         cfg_base.logging[cfg_base.logging.selected_type].save_dir, exist_ok=True)
 
-    using_wandb = cfg_base.logging.selected_type == "wandb"
     # loading clients data
     clients_data, clients_labels, test_data, test_labels, input_dim, labels_mapping = load_clients(
         cfg_base, cfg_exp_type)
 
+    # for df in clients_data:
+    #     print(df)
+    # return
     run_dtime = time.strftime("%Y%m%d-%H%M%S")
 
+    # for cl in clients_labels:
+    #     print(cl.value_counts().to_dict())
+    # return
     for model_name in models:
 
         config = {
@@ -55,6 +60,7 @@ def main(experiment, exp_type, models, num_cpus):
             "model_name": model_name,
             "input_dim": input_dim,
             "run_dtime": run_dtime,
+            "input_layer_norm": models_cfg_mapping[model_name].input_layer_norm
         }
 
         for attribute_name, attribute_value in cfg_base.training.items():
@@ -68,15 +74,11 @@ def main(experiment, exp_type, models, num_cpus):
             for attribute_name, attribute_value in model_config.items():
                 config[f"{model_name}_{layer}_{attribute_name}"] = attribute_value
 
-        c_model = init_model(
-            cfg_base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
         client_app = ClientApp(client_fn=generate_client_fn(
-            clients_data, clients_labels, c_model, model_name, cfg_base, exp_type, config, run_dtime))
+            clients_data, clients_labels, models_cfg_mapping[model_name], cfg_base, exp_type, config, run_dtime, input_dim, labels_mapping))
 
-        s_model = init_model(
-            cfg_base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
         server_app = ServerApp(server_fn=generate_server_fn(
-            test_data, test_labels, s_model, model_name, cfg_base, exp_type, config, run_dtime))
+            test_data, test_labels, models_cfg_mapping[model_name], cfg_base, exp_type, config, run_dtime, input_dim, labels_mapping))
 
         backend_config = {"client_resources": {"num_cpus": num_cpus}}
         if DEVICE.type == "cuda":
@@ -103,18 +105,18 @@ def main(experiment, exp_type, models, num_cpus):
 
 
 if __name__ == "__main__":
-    experiment = "exp3_small"
+    experiment = "exp1_small"
     # experiment = "exp1"
     exp_types = [
-        "baseline",
-        "selected_centralities",
+        # "baseline",
+        # "selected_centralities",
         "all_centralities",
-        "pca_gdlc"
+        # "pca_gdlc"
     ]
 
     models = [
-        "mlp",
-        # "cnn",
+        # "mlp",
+        "cnn",
         # "cnn_lstm"
     ]
 

@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import warnings
+import torch
 from logging import StreamHandler, Formatter
 
 from sklearn.model_selection import train_test_split
@@ -9,9 +10,10 @@ from flwr.common import Context
 
 from src.data.data_module import FLDataModule
 from src.fl.fl_client import FLClient
+from src.models.init_model import init_model
 
 
-def generate_client_fn(data, labels, model, model_name, cfg_base, exp_type, config_to_add_to_logger, run_dtime):
+def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_add_to_logger, run_dtime, input_dim, labels_mapping):
 
     def client_fn(context: Context):
         warnings.filterwarnings(
@@ -33,17 +35,42 @@ def generate_client_fn(data, labels, model, model_name, cfg_base, exp_type, conf
             logger = WandbLogger(
                 project=logging_cfg.project,
                 config=config_to_add_to_logger,
-                version=f"{run_dtime}_{model_name}_{client_id}",
-                name=f"{exp_type}_{model_name}_client_{client_id}",
-                save_dir=f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{exp_type}_{model_name}_client_{client_id}"
+                version=f"{run_dtime}_{model_cfg.model.name}_{client_id}",
+                name=f"{exp_type}_{model_cfg.model.name}_client_{client_id}",
+                save_dir=f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{exp_type}_{model_cfg.model.name}_client_{client_id}"
             )
 
         else:
             logger = TensorBoardLogger(
-                f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{time.strftime('%Y%m%d-%H%M%S')}/{exp_type}_{model_name}/client_{client_id}")
+                f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{time.strftime('%Y%m%d-%H%M%S')}/{exp_type}_{model_cfg.model.name}/client_{client_id}")
 
         X_train, X_val, y_train, y_val = train_test_split(
             data[client_id], labels[client_id], test_size=cfg_base.dataset_properties.val_size, random_state=cfg_base.random_seed)
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        counts = labels[client_id].value_counts().to_dict()
+        # total = sum(counts.values())
+        # weights = {lbl: total / (len(counts) * cnt)
+        #            for lbl, cnt in counts.items()}
+        # weight_tensor = torch.tensor(list(weights.values())).float().to(device)
+
+        num_classes = len(labels_mapping)
+        counts_arr = np.zeros(num_classes, dtype=float)
+        for lbl, cnt in counts.items():
+            counts_arr[lbl] = cnt
+
+        # 3) compute total and inverse-frequency weights, zeroing out missing classes
+        # sum over only present classes
+        total = counts_arr.sum()
+        weights_arr = np.zeros_like(counts_arr)               # start all-zeros
+        # which classes actually appear?
+        mask = counts_arr > 0
+        weights_arr[mask] = total / (num_classes * counts_arr[mask])
+        weight_tensor = torch.tensor(weights_arr).float().to(device)
+
+        model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
+                           weight_tensor, cfg_base.logging.selected_type == "wandb")
+
         # Create data module
         data_module = FLDataModule(
             x_train=np.array(X_train),

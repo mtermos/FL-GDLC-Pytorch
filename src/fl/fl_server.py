@@ -1,13 +1,43 @@
+import torch
 from flwr.server import ServerAppComponents, ServerConfig
-from flwr.server.strategy import FedAvg
+from flwr.server.strategy import FedAvg, FedProx
+from flwr.common import Context
+import numpy as np
+
 from src.fl.get_evaluate_fn import get_evaluate_fn
 from src.fl.get_on_fit_config import get_on_fit_config
-from flwr.common import Context
+from src.models.init_model import init_model
 
 
-def generate_server_fn(data, labels, model, model_name, cfg_base, exp_type, config_to_add_to_logger, run_dtime):
+def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_add_to_logger, run_dtime, input_dim, labels_mapping):
     def server_fn(context: Context):
-        strategy = FedAvg(
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        counts = labels.value_counts().to_dict()
+        # total = sum(counts.values())
+        # weights = {lbl: total / (len(counts) * cnt)
+        #            for lbl, cnt in counts.items()}
+        # weight_tensor = torch.tensor(list(weights.values())).float().to(device)
+
+        num_classes = len(labels_mapping)
+        counts_arr = np.zeros(num_classes, dtype=float)
+        for lbl, cnt in counts.items():
+            counts_arr[lbl] = cnt
+
+        # 3) compute total and inverse-frequency weights, zeroing out missing classes
+        # sum over only present classes
+        total = counts_arr.sum()
+        weights_arr = np.zeros_like(counts_arr)               # start all-zeros
+        # which classes actually appear?
+        mask = counts_arr > 0
+        weights_arr[mask] = total / (num_classes * counts_arr[mask])
+        weight_tensor = torch.tensor(weights_arr).float().to(device)
+
+        model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
+                           weight_tensor, cfg_base.logging.selected_type == "wandb")
+        strategy = FedProx(
+            proximal_mu=0.5,
+            # strategy = FedAvg(
             fraction_fit=cfg_base.fl.fraction_fit,
             min_fit_clients=cfg_base.fl.min_fit_clients,
             fraction_evaluate=cfg_base.fl.fraction_evaluate,
@@ -19,7 +49,7 @@ def generate_server_fn(data, labels, model, model_name, cfg_base, exp_type, conf
                 labels,
                 cfg_base.training,
                 model,
-                model_name,
+                model_cfg.model.name,
                 cfg_base,
                 exp_type,
                 config_to_add_to_logger,

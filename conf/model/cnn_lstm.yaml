@@ -2,16 +2,18 @@
 model:
   name: "cnn_lstm"
   type: "cnn_lstm"
-  
+
 layers:
-  - cnn
-  - lstm
-  - dense
+- cnn
+- lstm
+- dense
+
+input_layer_norm: false
 
 # CNN layers
 cnn:
-  filters: [80, 80]
-  kernel_sizes: [3, 3]
+  filters: [ 80, 80 ]
+  kernel_sizes: [ 3, 3 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
@@ -20,7 +22,7 @@ cnn:
 
 # LSTM layers
 lstm:
-  hidden_size: [80]
+  hidden_size: [ 80 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
@@ -29,7 +31,7 @@ lstm:
 
 # Dense layers
 dense:
-  units: [200, 200, 80]
+  units: [ 200, 200, 80 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3

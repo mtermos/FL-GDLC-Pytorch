@@ -48,4 +48,11 @@ def load_clients(base_cfg, cfg):
 
     input_dim = clients_data[0].shape[1]
 
-    return clients_data, clients_labels, test_data, test_labels, input_dim, labels_mapping
+    return (
+        clients_data,
+        clients_labels,
+        test_data,
+        test_labels,
+        input_dim,
+        labels_mapping,
+    )
