@@ -1,52 +1,5 @@
-import timeit
-
 import networkx as nx
-
-
-def betweenness_rescale(betweenness, n, normalized, directed=False, k=None, endpoints=False):
-    if normalized:
-        if endpoints:
-            if n < 2:
-                scale = None  # no normalization
-            else:
-                # Scale factor should include endpoint nodes
-                scale = 1 / (n * (n - 1))
-        elif n <= 2:
-            scale = None  # no normalization b=0 for all nodes
-        else:
-            scale = 1 / ((n - 1) * (n - 2))
-    else:  # rescale by 2 for undirected graphs
-        if not directed:
-            scale = 0.5
-        else:
-            scale = None
-    if scale is not None:
-        if k is not None:
-            scale = scale * n / k
-        for v in betweenness:
-            betweenness[v] *= scale
-    return betweenness
-
-
-def hm_rescale(dict):
-    max_list = []
-    for i in dict.values():
-        max_list.append(i)
-    # Rescaling
-
-    def max_num_in_list(list):
-        max = list[0]
-        for a in list:
-            if a > max:
-                max = a
-        return max
-
-        # get the factor to divide by max
-    max_factor = max_num_in_list(max_list)
-    x = {}
-    for key, value in dict.items():
-        x[key] = value / max_factor
-    return x
+import igraph as ig
 
 
 def separate_graph(graph, communities):
@@ -87,4 +40,84 @@ def separate_graph(graph, communities):
             # Inter-community edge
             inter_graph.add_edge(node_u, node_v)
 
+    return intra_graph, inter_graph
+
+
+def build_clean_graph(df, src_ip_col, dst_ip_col, create_using):
+    """
+    Construct a NetworkX graph from a pandas DataFrame, remove isolates,
+    and set a 'label' attribute on each node.
+    """
+    G = nx.from_pandas_edgelist(
+        df,
+        source=src_ip_col,
+        target=dst_ip_col,
+        create_using=create_using
+    )
+    # Drop isolated nodes
+    G.remove_nodes_from(list(nx.isolates(G)))
+    # Retain original node identity as a 'label'
+    for node in G.nodes():
+        G.nodes[node]['label'] = node
+    return G
+
+
+def needs_community(cn_measures):
+    """
+    Return True if any requested centrality measure requires community detection.
+    """
+    comm_list = [
+        "local_betweenness", "global_betweenness",
+        "local_degree",     "global_degree",
+        "local_eigenvector", "global_eigenvector",
+        "local_closeness",  "global_closeness",
+        "local_pagerank",   "global_pagerank",
+        "Comm", "mv"
+    ]
+    return any(m in comm_list for m in cn_measures)
+
+
+def detect_communities(G, G1=None, part=None):
+    """
+    Perform Infomap community detection on G, returning:
+      - communities (list of lists of node labels),
+      - the igraph Graph G1,
+      - the membership partition object `part`.
+    """
+    # Convert to igraph if not already done
+    if G1 is None:
+        G1 = ig.Graph.from_networkx(G)
+        labels = [G.nodes[n].get('label', n) for n in G.nodes()]
+        G1.vs['label'] = labels
+    # Run Infomap if needed
+    if part is None:
+        part = G1.community_infomap()
+    # Extract communities as lists of original node labels
+    communities = [[G1.vs[idx]['label'] for idx in comm] for comm in part]
+    return communities, G1, part
+
+
+def attach_communities(G, communities, attr_name="new_community"):
+    """
+    Set a node attribute on G mapping each node to its community index.
+    """
+    community_labels = {}
+    for i, comm in enumerate(communities):
+        for node in comm:
+            community_labels[node] = i
+    nx.set_node_attributes(G, community_labels, attr_name)
+
+    return community_labels
+
+
+def separate_graphs_if_needed(G, communities):
+    """
+    Split G into intra-community and inter-community subgraphs
+    if communities provided; otherwise return G for both.
+    """
+    if communities:
+        intra_graph, inter_graph = separate_graph(G, communities)
+    else:
+        intra_graph = G
+        inter_graph = G
     return intra_graph, inter_graph

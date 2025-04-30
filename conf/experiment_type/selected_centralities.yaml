@@ -1,0 +1,15 @@
+experiment_type: "selected_centralities"
+description: "Addition of selected centralities: degree, betweenness, and pagerank"
+
+centralities:
+- "degree"
+- "betweenness"
+- "pagerank"
+
+network_features:
+- "src_degree"
+- "dst_degree"
+- "src_betweenness"
+- "dst_betweenness"
+- "src_pagerank"
+- "dst_pagerank"

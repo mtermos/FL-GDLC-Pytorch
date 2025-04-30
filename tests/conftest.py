@@ -4,7 +4,8 @@ import os
 import pandas as pd
 from omegaconf import OmegaConf
 import src.create_clients as cc
-import shutil
+
+from src.utils import load_config
 
 
 @pytest.fixture
@@ -36,7 +37,7 @@ def mock_data(monkeypatch):
     }
     # print(f"==>> mapping: {mapping}")
     # Stub loading and processing functions
-    monkeypatch.setattr(cc, "_load_df", lambda file_path,
+    monkeypatch.setattr(cc, "load_df", lambda file_path,
                         raw_type: mapping[os.path.basename(file_path)])
     monkeypatch.setattr(cc, "calculate_df_properties",
                         lambda *args, **kwargs: None)
@@ -48,63 +49,11 @@ def mock_data(monkeypatch):
 
 @pytest.fixture
 def mock_base_cfg():
-    base_cfg = {
+    return OmegaConf.create({
         "random_seed": 42,
-        "datasets": {
-            "datasets_list": [
-                {
-                    "dataset_properties": {
-                        "name": "test_dataset1",
-                        "raw": "test_dataset1.parquet",
-                        "raw_type": "parquet",
-                        "num_clients": 3,
-                        "global_test_size": 0.2,
-                        "src_ip_col": "src_ip",
-                        "dst_ip_col": "dst_ip",
-                        "timestamp_col": "timestamp",
-                        "flow_id_col": "flow_id",
-                        "class_col": "class",
-                        "class_num_col": "class_num",
-                        "label_col": "label",
-                    }
-                },
-                {
-                    "dataset_properties": {
-                        "name": "test_dataset2",
-                        "raw": "test_dataset2.parquet",
-                        "raw_type": "parquet",
-                        "num_clients": 2,
-                        "global_test_size": 0.2,
-                        "src_ip_col": "src_ip",
-                        "dst_ip_col": "dst_ip",
-                        "timestamp_col": "timestamp",
-                        "flow_id_col": "flow_id",
-                        "class_col": "class",
-                        "class_num_col": "class_num",
-                        "label_col": "label",
-                    }
-                }
-            ],
-            "processed_dir": "tests/processed",
-            "src_ip_col": "src_ip",
-            "dst_ip_col": "dst_ip",
-            "timestamp_col": "timestamp",
-            "flow_id_col": "flow_id",
-            "timestamp_format": "%d/%m/%Y %I:%M:%S %p",
-            "label_col": "label",
-            "class_col": "class",
-            "class_num_col": "class_num",
-            "val_size": 0.2,
-            "drop_columns": [
-                "flow_id",
-                "src_ip",
-                "dst_ip",
-                "timestamp",
-                "class"
-            ],
-            "weak_columns": [
-                "f2"
-            ]
+        "experiment": {
+            "name": "test_exp",
+            "description": "A test exp, for unit testing",
         },
         "training": {
             "multi_class": True,
@@ -129,131 +78,66 @@ def mock_base_cfg():
             "min_evaluate_clients": 8,
             "min_available_clients": 8,
         },
-        "models": ["cnn"],
-    }
-
-    return OmegaConf.create(base_cfg)
+        "logging": {},
+        "datasets": [
+            {
+                "name": "test_dataset1",
+                "raw": "test_dataset1.parquet",
+                "raw_type": "parquet",
+                "num_clients": 3,
+                "global_test_size": 0.2,
+            },
+            {
+                "name": "test_dataset2",
+                "raw": "test_dataset2.parquet",
+                "raw_type": "parquet",
+                "num_clients": 2,
+                "global_test_size": 0.2,
+            },
+        ],
+        "dataset_properties": {
+            "processed_dir": "tests/processed",
+            "src_ip_col": "src_ip",
+            "dst_ip_col": "dst_ip",
+            "timestamp_col": "timestamp",
+            "flow_id_col": "flow_id",
+            "timestamp_format": "%d/%m/%Y %I:%M:%S %p",
+            "label_col": "label",
+            "class_col": "class",
+            "class_num_col": "class_num",
+            "val_size": 0.2,
+            "drop_columns": [
+                "flow_id",
+                "src_ip",
+                "dst_ip",
+                "timestamp",
+                "class"
+            ],
+            "weak_columns": [
+                "f2"
+            ]
+        },
+    })
 
 
 @pytest.fixture
 def mock_baseline_cfg():
-    baseline_cfg = {
-        "experiment": {
-            "exp": "test_exp",
-            "type": "baseline",
-            "description": "Baseline experiment with basic CNN model"
-        }
-    }
-
-    return OmegaConf.create(baseline_cfg)
+    return load_config("experiment_type/baseline")
 
 
 @pytest.fixture
 def mock_selected_centralities_cfg():
-    selected_centralities_cfg = {
-        "experiment": {
-            "exp": "test_exp",
-            "type": "selected_centralities",
-            "description": "Selected Centralities experiment with basic CNN model"
-        },
-        "centralities": [
-            "degree",
-            "betweenness",
-            "pagerank"
-        ],
-        "network_features": [
-            "src_degree",
-            "dst_degree",
-            "src_betweenness",
-            "dst_betweenness",
-            "src_pagerank",
-            "dst_pagerank"
-        ]
-    }
-
-    return OmegaConf.create(selected_centralities_cfg)
+    return load_config("experiment_type/selected_centralities")
 
 
 @pytest.fixture
 def mock_all_centralities_cfg():
-    all_centralities_cfg = {
-        "experiment": {
-            "exp": "test_exp",
-            "type": "all_centralities"
-        },
-        "centralities": [
-            "degree",
-            "local_degree",
-            "global_degree",
-            "betweenness",
-            "local_betweenness",
-            "global_betweenness",
-            "eigenvector",
-            "closeness",
-            "pagerank",
-            "local_pagerank",
-            "global_pagerank",
-            "k_core",
-            "k_truss",
-            "mv",
-            "Comm"
-        ],
-        "network_features": [
-            "src_degree",
-            "dst_degree",
-            "src_local_degree",
-            "dst_local_degree",
-            "src_global_degree",
-            "dst_global_degree",
-            "src_betweenness",
-            "dst_betweenness",
-            "src_local_betweenness",
-            "dst_local_betweenness",
-            "src_global_betweenness",
-            "dst_global_betweenness",
-            "src_eigenvector",
-            "dst_eigenvector",
-            "src_closeness",
-            "dst_closeness",
-            "src_pagerank",
-            "dst_pagerank",
-            "src_local_pagerank",
-            "dst_local_pagerank",
-            "src_global_pagerank",
-            "dst_global_pagerank",
-            "src_k_core",
-            "dst_k_core",
-            "src_k_truss",
-            "dst_k_truss",
-            "src_mv",
-            "dst_mv",
-            "src_Comm",
-            "dst_Comm"
-        ]
-    }
-
-    return OmegaConf.create(all_centralities_cfg)
+    return load_config("experiment_type/all_centralities")
 
 
 @pytest.fixture
 def mock_pca_gdlc_cfg():
-    pca_gdlc_cfg = {
-        "experiment": {
-            "exp": "test_exp",
-            "type": "pca_gdlc",
-            "description": "PCA_GDLC experiment with basic CNN model",
-            "num_pca_components": 3
-        },
-        "additional_columns": {
-            "pca_columns": [
-                "global_pca_1",
-                "global_pca_2",
-                "global_pca_3"
-            ]
-        }
-    }
-
-    return OmegaConf.create(pca_gdlc_cfg)
+    return load_config("experiment_type/pca_gdlc")
 
 
 @pytest.fixture

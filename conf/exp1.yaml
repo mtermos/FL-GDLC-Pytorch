@@ -1,0 +1,68 @@
+random_seed: 42
+
+experiment:
+  name: "exp1"
+  description: "An FL environment created using the cic_ton_iot and the cic_ids_2017 datasets"
+
+training:
+  multi_class: true
+  batch_size: 256
+  max_epochs: 3
+
+  optimizer: "adam"
+  learning_rate: 0.001
+  lr_decay: true
+  lr_decay_rate: 0.5
+  weight_decay: 0.01
+
+  LAMBD_2: 0.01
+  dropout: true
+  dropout_rate: 0.5
+  batch_norm: true
+
+fl:
+  num_rounds: 15
+  fraction_fit: 1.0
+  fraction_evaluate: 1.0
+  num_clients: 8
+  min_fit_clients: 8
+  min_evaluate_clients: 8
+  min_available_clients: 8
+
+logging:
+  selected_type: "wandb"
+  wandb:
+    project: "FL-GDLC-exp1"
+    entity: "mtermos-cesi"
+    tags: [ "exp1", "cic_ton_iot", "cic_ids_2017" ]
+    save_dir: "logs/wandb_runs"
+  tensorboard:
+    project: "FL-GDLC-exp1"
+    save_dir: "logs/tensorboard_runs"
+
+datasets:
+- name: "cic_ton_iot"
+  raw: "cic_ton_iot.parquet"
+  raw_type: "parquet"
+  num_clients: 5
+  global_test_size: 0.1
+
+- name: "cic_ids_2017"
+  raw: "cic_ids_2017.parquet"
+  raw_type: "parquet"
+  num_clients: 3
+  global_test_size: 0.1
+
+dataset_properties:
+  processed_dir: "datasets/exp1"
+  src_ip_col: "Src IP"
+  dst_ip_col: "Dst IP"
+  timestamp_col: "Timestamp"
+  flow_id_col: "Flow ID"
+  timestamp_format: "%d/%m/%Y %I:%M:%S %p"
+  label_col: "Label"
+  class_col: "Attack"
+  class_num_col: "Class"
+  val_size: 0.1
+  drop_columns: [ "Flow ID", "Src IP", "Dst IP", "Timestamp", "Src Port", "Dst Port", "Attack" ]
+  weak_columns: [ "Flow Duration", "Tot Bwd Pkts", "TotLen Bwd Pkts", "Fwd Pkt Len Max", "Fwd Pkt Len Mean", "Bwd Pkt Len Max", "Bwd Pkt Len Mean", "Bwd Pkt Len Std", "Flow Pkts/s", "Flow IAT Mean", "Flow IAT Max", "Fwd IAT Mean", "Bwd IAT Mean", "Pkt Len Max", "Pkt Len Mean", "Pkt Size Avg", "Fwd Byts/b Avg", "Fwd Pkts/b Avg", "Fwd Blk Rate Avg", "Active Mean, Idle Mean" ]

@@ -1,0 +1,5 @@
+experiment_type: "baseline"
+description: "No centralities features are added"
+
+centralities: []
+network_features: []

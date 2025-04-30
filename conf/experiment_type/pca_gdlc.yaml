@@ -1,0 +1,10 @@
+experiment_type: "pca_gdlc"
+description: "Addition of PCA columns representing the GDLC features"
+
+num_pca_components: 3
+
+additional_columns:
+  pca_columns:
+  - "global_pca_1"
+  - "global_pca_2"
+  - "global_pca_3"

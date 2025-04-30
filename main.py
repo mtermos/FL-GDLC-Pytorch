@@ -4,7 +4,6 @@ import torch
 from flwr.simulation import run_simulation
 from flwr.client import ClientApp
 from flwr.server import ServerApp
-from hydra import initialize, compose
 import warnings
 import wandb
 import ray
@@ -13,6 +12,7 @@ from src.load_clients import load_clients
 from src.fl.fl_server import generate_server_fn
 from src.fl.generate_client_fn import generate_client_fn
 from src.models.init_model import init_model
+from src.utils import load_config
 
 # Suppress the “does not have many workers” UserWarning
 warnings.filterwarnings(
@@ -20,12 +20,6 @@ warnings.filterwarnings(
     message=".*does not have many workers.*",
     category=UserWarning,
 )
-
-
-def load_config(config_name="exp1/base_config"):
-    with initialize(version_base=None, config_path="conf"):
-        cfg = compose(config_name=config_name)
-        return cfg
 
 
 def main(experiment, exp_type, num_cpus):

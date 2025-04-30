@@ -1,14 +1,14 @@
 from src.graph.graph_level_measures import compute_graph_properties
-from src.data.gdlc_types import gdlc_centrality_measures, gdlc_network_features
-from src.graph.centralities import add_centralities
+from src.graph.gdlc_types import gdlc_centrality_measures, gdlc_network_features
+from src.graph.add_centralities import add_centralities
 
 
-def add_gdlc_centralities(df, dataset, G):
+def add_gdlc_centralities(df, src_ip_col, dst_ip_col, G):
     gdlc_type = get_gdlc_type(G)
     centrality_measures = gdlc_centrality_measures[gdlc_type-1]
     network_features = gdlc_network_features[gdlc_type-1]
 
-    add_centralities(df, new_path=None, graph_path=None, dataset=dataset,
+    add_centralities(df, new_path=None, graph_path=None, src_ip_col=src_ip_col, dst_ip_col=dst_ip_col,
                      cn_measures=centrality_measures, network_features=network_features, G=G)
 
     return network_features

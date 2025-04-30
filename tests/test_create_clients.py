@@ -1,5 +1,4 @@
 import os
-import pytest
 import pandas as pd
 from src.create_clients import create_clients
 
@@ -52,7 +51,7 @@ def test_create_clients_pca_gdlc(mock_base_cfg, mock_pca_gdlc_cfg, mock_data):
     assert test_df.shape[0] == 4
     assert input_dim == df_list[0].shape[1]
     processed_dir = os.path.join(
-        mock_base_cfg.datasets.processed_dir, mock_pca_gdlc_cfg.experiment.type)
+        mock_base_cfg.dataset_properties.processed_dir, mock_pca_gdlc_cfg.experiment_type)
     assert os.path.isfile(os.path.join(processed_dir, "pca_results.json"))
     assert input_dim == original_dimension + 1 + \
-        mock_pca_gdlc_cfg.experiment.num_pca_components
+        mock_pca_gdlc_cfg.num_pca_components

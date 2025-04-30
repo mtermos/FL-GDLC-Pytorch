@@ -1,9 +1,40 @@
+import os
 import json
 import numpy as np
-
+import pandas as pd
 import itertools
-
 import matplotlib.pyplot as plt
+from hydra import initialize, compose
+
+
+def load_df(file_path, raw_type):
+    if raw_type == "parquet":
+        return pd.read_parquet(file_path)
+    elif raw_type == "csv":
+        return pd.read_csv(file_path)
+
+
+# def load_config(config_name="exp1"):
+#     with initialize(version_base=None, config_path="../conf"):
+#         cfg = compose(config_name=config_name)
+#         return cfg
+
+
+def load_config(config_name: str = "exp1"):
+    # Split “group/subgroup/filename” into parts
+    parts = config_name.split("/")
+    # If there's a group path, prepend it to "../conf"
+    if len(parts) > 1:
+        subfolder = "/".join(parts[:-1])          # e.g. "experiment_type"
+        filename = parts[-1]                     # e.g. "baseline"
+        config_path = f"../conf/{subfolder}"      # relative path
+    else:
+        filename = parts[0]
+        config_path = "../conf"
+
+    with initialize(version_base=None, config_path=config_path):
+        cfg = compose(config_name=filename)
+        return cfg
 
 
 class NumpyEncoder(json.JSONEncoder):

@@ -1,54 +1,49 @@
-import pandas as pd
 import os
+import json
 import numpy as np
+import pandas as pd
 import pickle
 import networkx as nx
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+
 from local_variables import original_datasets_files_path
 from src.data.calculate_df_properties import calculate_df_properties
-from src.graph.centralities import add_centralities
+from src.graph.add_centralities import add_centralities
 from src.graph.add_gdlc_centralities import add_gdlc_centralities
 from src.add_fed_pca import process_clients_with_grouped_pca_rmse
-import json
-from src.utils import NumpyEncoder
+from src.utils import NumpyEncoder, load_df
 from src.data.normalize_labels import normalize_labels
 
 
-def _load_df(file_path, raw_type):
-    if raw_type == "parquet":
-        return pd.read_parquet(file_path)
-    elif raw_type == "csv":
-        return pd.read_csv(file_path)
-
-
-def _process_dataset(df, dataset):
+def _process_dataset(df, timestamp_col, flow_id_col, class_col):
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.dropna(axis=0, how='any', inplace=True)
     df.drop_duplicates(subset=list(set(
-        df.columns) - set([dataset.timestamp_col, dataset.flow_id_col])), keep="first", inplace=True)
+        df.columns) - set([timestamp_col, flow_id_col])), keep="first", inplace=True)
 
-    df[dataset.class_col] = normalize_labels(df, dataset.class_col)
+    df[class_col] = normalize_labels(df, class_col)
     return df
 
 
-def _process_partition_data(partition_df, dataset, partition_name, cfg, processed_dir):
+def _process_partition_data(partition_df, src_ip_col, dst_ip_col, label_col, partition_name, cfg, processed_dir):
     G = nx.from_pandas_edgelist(
         partition_df,
-        source=dataset.src_ip_col,
-        target=dataset.dst_ip_col,
+        source=src_ip_col,
+        target=dst_ip_col,
         create_using=nx.DiGraph()
     )
 
     gdlc_features = None
-    if cfg.experiment.type == "pca_gdlc":
+    if cfg.experiment_type == "pca_gdlc":
         gdlc_features = add_gdlc_centralities(
-            partition_df, dataset=dataset, G=G)
-    elif cfg.experiment.type in ["all_centralities", "selected_centralities"]:
-        add_centralities(partition_df, new_path=None, graph_path=None, dataset=dataset,
+            partition_df, src_ip_col, dst_ip_col, G=G)
+    else:
+        add_centralities(partition_df, new_path=None, graph_path=None, src_ip_col=src_ip_col, dst_ip_col=dst_ip_col,
                          cn_measures=cfg.centralities, network_features=cfg.network_features, G=G)
 
-    calculate_df_properties(partition_df, G, dataset,
+    calculate_df_properties(partition_df, G, label_col,
                             processed_dir, partition_name)
     return gdlc_features
 
@@ -60,20 +55,25 @@ def _save_dataframes(df_list, test_df, names, processed_dir):
             processed_dir, f"{name}.parquet"))
 
 
-def create_clients(base_cfg, cfg):
+def create_clients(base_cfg, experiment_type_cfg):
+    dp = base_cfg.dataset_properties
     processed_dir = os.path.join(
-        base_cfg.datasets.processed_dir, cfg.experiment.type)
+        dp.processed_dir, base_cfg.experiment.name)
     os.makedirs(processed_dir, exist_ok=True)
 
     # Load and preprocess datasets
     classes_list = []
     df_map = {}
-    for dataset_properties in base_cfg.datasets.datasets_list:
-        dataset = dataset_properties.dataset_properties
-        df = _load_df(os.path.join(original_datasets_files_path,
-                                   dataset.raw), dataset.raw_type)
-        df = _process_dataset(df, dataset)
-        classes_list.append(df[dataset.class_col].unique())
+    for dataset in base_cfg.datasets:
+        df = load_df(os.path.join(original_datasets_files_path,
+                                  dataset.raw), dataset.raw_type)
+        df = _process_dataset(
+            df,
+            dp.timestamp_col,
+            dp.flow_id_col,
+            dp.class_col
+        )
+        classes_list.append(df[dp.class_col].unique())
         df_map[dataset.name] = df
 
     # Encode labels
@@ -93,25 +93,25 @@ def create_clients(base_cfg, cfg):
     df_mapping = {}
     gdlc_features_mapping = {}
 
-    for dataset_properties in base_cfg.datasets.datasets_list:
-        dataset = dataset_properties.dataset_properties
+    for dataset in base_cfg.datasets:
         df = df_map[dataset.name]
-        df[dataset.class_num_col] = label_encoder.transform(
-            df[dataset.class_col])
+        df[dp.class_num_col] = label_encoder.transform(
+            df[dp.class_col])
 
         G = nx.from_pandas_edgelist(
-            df, source=dataset.src_ip_col, target=dataset.dst_ip_col, create_using=nx.DiGraph())
-        calculate_df_properties(df, G, dataset, processed_dir, dataset.name)
+            df, source=dp.src_ip_col, target=dp.dst_ip_col, create_using=nx.DiGraph())
+        calculate_df_properties(
+            df, G, dp.label_col, processed_dir, dataset.name)
 
         clients_df, test_df = train_test_split(
-            df, test_size=dataset.global_test_size, random_state=base_cfg.random_seed, stratify=df[dataset.class_num_col])
+            df, test_size=dataset.global_test_size, random_state=base_cfg.random_seed, stratify=df[dp.class_num_col])
         test_df_list.append(test_df)
 
         for client_df in np.array_split(clients_df, dataset.num_clients):
             client_name = f"client_{clients_count}"
             names.append(client_name)
             gdlc_features = _process_partition_data(
-                client_df, dataset, client_name, cfg, processed_dir)
+                client_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, client_name, experiment_type_cfg, processed_dir)
             gdlc_features_mapping[client_name] = gdlc_features
             df_mapping[client_name] = client_df
             clients_count += 1
@@ -119,11 +119,11 @@ def create_clients(base_cfg, cfg):
     # Process test data
     test_df = pd.concat(test_df_list)
     gdlc_features = _process_partition_data(
-        test_df, dataset, "test", cfg, processed_dir)
+        test_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, "test", experiment_type_cfg, processed_dir)
     gdlc_features_mapping["test"] = gdlc_features
 
     # Handle PCA specific processing
-    if cfg.experiment.type == "pca_gdlc":
+    if experiment_type_cfg.experiment_type == "pca_gdlc":
         names.append("test")
         df_mapping["test"] = test_df
 
@@ -131,7 +131,7 @@ def create_clients(base_cfg, cfg):
                          for key, value in df_mapping.items()}
         pca_dfs_dict, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
             dfs_dict=gdlc_dfs_dict,
-            n_components=cfg.experiment.num_pca_components
+            n_components=experiment_type_cfg.num_pca_components
         )
 
         for name, df in pca_dfs_dict.items():

@@ -5,8 +5,9 @@ from src.create_clients import create_clients
 
 
 def load_clients(base_cfg, cfg):
+    dp = base_cfg.dataset_properties
     processed_dir = os.path.join(
-        base_cfg.datasets.processed_dir, cfg.experiment.type)
+        dp.processed_dir, cfg.experiment_type)
     if os.path.exists(processed_dir) and os.path.exists(os.path.join(processed_dir, "test.parquet")):
         test_path = os.path.join(processed_dir, "test.parquet")
         clients_paths = [os.path.join(processed_dir, f) for f in os.listdir(
@@ -23,18 +24,18 @@ def load_clients(base_cfg, cfg):
         clients_data, test_data, input_dim = create_clients(base_cfg, cfg)
 
     if base_cfg.training.multi_class:
-        label_col = base_cfg.datasets.class_num_col
+        label_col = dp.class_num_col
     else:
-        label_col = base_cfg.datasets.label_col
+        label_col = dp.label_col
 
     clients_labels = []
     for client in clients_data:
         clients_labels.append(client[label_col])
-        client.drop(columns=base_cfg.datasets.drop_columns + [base_cfg.datasets.class_col, base_cfg.datasets.class_num_col, base_cfg.datasets.label_col] + base_cfg.datasets.weak_columns,
+        client.drop(columns=dp.drop_columns + [dp.class_col, dp.class_num_col, dp.label_col] + dp.weak_columns,
                     inplace=True, errors='ignore')
 
     test_labels = test_data[label_col]
-    test_data.drop(columns=base_cfg.datasets.drop_columns + [base_cfg.datasets.class_col, base_cfg.datasets.class_num_col, base_cfg.datasets.label_col] + base_cfg.datasets.weak_columns,
+    test_data.drop(columns=dp.drop_columns + [dp.class_col, dp.class_num_col, dp.label_col] + dp.weak_columns,
                    inplace=True, errors='ignore')
 
     input_dim = clients_data[0].shape[1]

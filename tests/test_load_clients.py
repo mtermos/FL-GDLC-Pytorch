@@ -4,6 +4,7 @@ from src.load_clients import load_clients
 
 
 def test_load_clients_reads_existing(mock_base_cfg, mock_baseline_cfg, mock_data):
+    dp = mock_base_cfg.dataset_properties
     # First, generate processed files
     df_list_original, test_df_original, input_dim_original = create_clients(
         mock_base_cfg, mock_baseline_cfg
@@ -18,9 +19,9 @@ def test_load_clients_reads_existing(mock_base_cfg, mock_baseline_cfg, mock_data
     # print(test_data)
     # Input dimension should match
     assert input_dim_loaded == input_dim_original - \
-        len(mock_base_cfg.datasets.drop_columns) - \
-        len(mock_base_cfg.datasets.weak_columns) - \
-        len([mock_base_cfg.datasets.label_col, mock_base_cfg.datasets.class_num_col])
+        len(dp.drop_columns) - \
+        len(dp.weak_columns) - \
+        len([dp.label_col, dp.class_num_col])
 
     # Number of clients should match
     assert len(clients_data) == len(df_list_original)
@@ -39,9 +40,9 @@ def test_load_clients_reads_existing(mock_base_cfg, mock_baseline_cfg, mock_data
     # Labels should match the original label column
 
     if mock_base_cfg.training.multi_class:
-        label_col = mock_base_cfg.datasets.class_num_col
+        label_col = dp.class_num_col
     else:
-        label_col = mock_base_cfg.datasets.label_col
+        label_col = dp.label_col
 
     for orig, labels in zip(df_list_original, clients_labels):
         pd.testing.assert_series_equal(
