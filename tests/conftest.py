@@ -12,24 +12,24 @@ from src.utils import load_config
 def mock_data(monkeypatch):
     # Generate mock dataframes
     df1 = pd.DataFrame({
-        "src_ip": [f"192.168.0.{i%3}" for i in range(10)],
-        "dst_ip": [f"10.0.0.{i%2}" for i in range(10)],
-        "timestamp": pd.date_range("2021-01-01", periods=10, freq="min").strftime("%d/%m/%Y %I:%M:%S %p"),
-        "flow_id": list(range(10)),
-        "f1": [random.randint(0, 100) for _ in range(10)],
-        "f2": [random.randint(0, 100) for _ in range(10)],
-        "class": ["A"] * 3 + ["B"] * 4 + ["C"] * 3,
-        "label": [0] * 3 + [1] * 7
+        "src_ip": [f"192.168.0.{i%3}" for i in range(20)],
+        "dst_ip": [f"10.0.0.{i%2}" for i in range(20)],
+        "timestamp": pd.date_range("2021-01-01", periods=20, freq="min").strftime("%d/%m/%Y %I:%M:%S %p"),
+        "flow_id": list(range(20)),
+        "f1": [random.randint(0, 100) for _ in range(20)],
+        "f2": [random.randint(0, 100) for _ in range(20)],
+        "class": ["Benign"] * 6 + ["bot"] * 8 + ["dos"] * 6,
+        "label": [0] * 6 + [1] * 14
     })
     df2 = pd.DataFrame({
-        "src_ip": [f"192.168.1.{i%4}" for i in range(10)],
-        "dst_ip": [f"10.0.1.{i%3}" for i in range(10)],
-        "timestamp": pd.date_range("2021-02-01", periods=10, freq="min").strftime("%d/%m/%Y %I:%M:%S %p"),
-        "flow_id": list(range(10)),
-        "f1": [random.randint(0, 100) for _ in range(10)],
-        "f2": [random.randint(0, 100) for _ in range(10)],
-        "class": ["A"] * 5 + ["B"] * 5,
-        "label": [0] * 5 + [1] * 5
+        "src_ip": [f"192.168.1.{i%4}" for i in range(20)],
+        "dst_ip": [f"10.0.1.{i%3}" for i in range(20)],
+        "timestamp": pd.date_range("2021-02-01", periods=20, freq="min").strftime("%d/%m/%Y %I:%M:%S %p"),
+        "flow_id": list(range(20)),
+        "f1": [random.randint(0, 100) for _ in range(20)],
+        "f2": [random.randint(0, 100) for _ in range(20)],
+        "class": ["Benign"] * 10 + ["bot"] * 10,
+        "label": [0] * 10 + [1] * 10
     })
     mapping = {
         "test_dataset1.parquet": df1,

@@ -82,6 +82,7 @@ def create_clients(base_cfg, experiment_type_cfg):
     label_encoder.fit(list(classes))
     labels_names = dict(zip(label_encoder.transform(
         label_encoder.classes_), label_encoder.classes_))
+    labels_names = {int(k): str(v) for k, v in labels_names.items()}
 
     with open(processed_dir + '/labels_names.pkl', 'wb') as f:
         pickle.dump([labels_names, classes], f)
@@ -152,5 +153,4 @@ def create_clients(base_cfg, experiment_type_cfg):
 
     df_list = [df_mapping[key] for key in names if key in df_mapping]
 
-    input_dim = df_list[0].shape[1]
-    return df_list, test_df, input_dim
+    return df_list, test_df, labels_names
