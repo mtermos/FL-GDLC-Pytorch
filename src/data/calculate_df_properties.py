@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def calculate_df_properties(df, G, dataset, processed_dir, name):
+def calculate_df_properties(df, G, label_col, processed_dir, name):
     total_count = len(df)
 
     properties = {
@@ -11,8 +11,8 @@ def calculate_df_properties(df, G, dataset, processed_dir, name):
         "length": total_count,
     }
 
-    num_benign = len(df[df[dataset.label_col] == 0])
-    num_attack = len(df[df[dataset.label_col] == 1])
+    num_benign = len(df[df[label_col] == 0])
+    num_attack = len(df[df[label_col] == 1])
 
     properties["num_benign"] = num_benign
     properties["percentage_of_benign_records"] = (

@@ -22,7 +22,7 @@ warnings.filterwarnings(
 )
 
 
-def main(experiment, exp_type, num_cpus):
+def main(experiment, exp_type, models, num_cpus):
     print("==================================")
     print("==================================")
     print("==================================")
@@ -31,18 +31,19 @@ def main(experiment, exp_type, num_cpus):
     # os.environ["RAY_DEDUP_LOGS"] = "0"
     DEVICE = torch.device("cpu")
 
-    cfg = load_config(os.path.join(experiment, f"{exp_type}"))
-    models = cfg.base.models
+    cfg_base = load_config(experiment)
+    cfg_exp_type = load_config(f"experiment_type/{exp_type}")
+
     models_cfg_mapping = {model: load_config(
         os.path.join("model", f"{model}")) for model in models}
 
     os.makedirs(
-        cfg.base.logging[cfg.base.logging.selected_type].save_dir, exist_ok=True)
+        cfg_base.logging[cfg_base.logging.selected_type].save_dir, exist_ok=True)
 
-    using_wandb = cfg.base.logging.selected_type == "wandb"
+    using_wandb = cfg_base.logging.selected_type == "wandb"
     # loading clients data
     clients_data, clients_labels, test_data, test_labels, input_dim, labels_mapping = load_clients(
-        cfg.base, cfg)
+        cfg_base, cfg_exp_type)
 
     run_dtime = time.strftime("%Y%m%d-%H%M%S")
 
@@ -56,10 +57,10 @@ def main(experiment, exp_type, num_cpus):
             "run_dtime": run_dtime,
         }
 
-        for attribute_name, attribute_value in cfg.base.training.items():
+        for attribute_name, attribute_value in cfg_base.training.items():
             config[attribute_name] = attribute_value
 
-        for attribute_name, attribute_value in cfg.base.fl.items():
+        for attribute_name, attribute_value in cfg_base.fl.items():
             config[attribute_name] = attribute_value
 
         for layer in models_cfg_mapping[model_name].layers:
@@ -68,14 +69,14 @@ def main(experiment, exp_type, num_cpus):
                 config[f"{model_name}_{layer}_{attribute_name}"] = attribute_value
 
         c_model = init_model(
-            cfg.base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
+            cfg_base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
         client_app = ClientApp(client_fn=generate_client_fn(
-            clients_data, clients_labels, c_model, model_name, cfg, config, run_dtime))
+            clients_data, clients_labels, c_model, model_name, cfg_base, exp_type, config, run_dtime))
 
         s_model = init_model(
-            cfg.base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
+            cfg_base.training, models_cfg_mapping[model_name], input_dim, labels_mapping, using_wandb)
         server_app = ServerApp(server_fn=generate_server_fn(
-            test_data, test_labels, s_model, model_name, cfg, config, run_dtime))
+            test_data, test_labels, s_model, model_name, cfg_base, exp_type, config, run_dtime))
 
         backend_config = {"client_resources": {"num_cpus": num_cpus}}
         if DEVICE.type == "cuda":
@@ -91,7 +92,7 @@ def main(experiment, exp_type, num_cpus):
     run_simulation(
         server_app=server_app,
         client_app=client_app,
-        num_supernodes=cfg.base.fl.num_clients,
+        num_supernodes=cfg_base.fl.num_clients,
         backend_config=backend_config,
     )
 
@@ -102,7 +103,7 @@ def main(experiment, exp_type, num_cpus):
 
 
 if __name__ == "__main__":
-    experiment = "exp1_small"
+    experiment = "exp3_small"
     # experiment = "exp1"
     exp_types = [
         "baseline",
@@ -110,11 +111,13 @@ if __name__ == "__main__":
         "all_centralities",
         "pca_gdlc"
     ]
-    # exp_type = "baseline"
-    # exp_type = "selected_centralities"
-    # exp_type = "all_centralities"
-    # exp_type = "pca_gdlc"
+
+    models = [
+        "mlp",
+        # "cnn",
+        # "cnn_lstm"
+    ]
 
     num_cpus = os.cpu_count()
     for exp_type in exp_types:
-        main(experiment, exp_type, num_cpus)
+        main(experiment, exp_type, models, num_cpus)

@@ -9,21 +9,21 @@ from src.models.init_model import init_model
 from src.data.data_module import TestDataModule
 
 
-def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, model_name, cfg, config_to_add_to_logger, run_dtime):
+def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, model_name, cfg_base, exp_type, config_to_add_to_logger, run_dtime):
     def evaluate_fn(server_round: int, parameters, config):
 
-        logging_cfg = cfg.base.logging[cfg.base.logging.selected_type]
-        if cfg.base.logging.selected_type == "wandb":
+        logging_cfg = cfg_base.logging[cfg_base.logging.selected_type]
+        if cfg_base.logging.selected_type == "wandb":
             logger = WandbLogger(
                 project=logging_cfg.project,
                 config=config_to_add_to_logger,
                 version=f"{run_dtime}_{model_name}_test",
-                name=f"{cfg.experiment.type}_{model_name}_test",
-                save_dir=f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{cfg.experiment.type}_{model_name}_test"
+                name=f"{exp_type}_{model_name}_test",
+                save_dir=f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{exp_type}_{model_name}_test"
             )
         else:
             logger = TensorBoardLogger(
-                f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{time.strftime('%Y%m%d-%H%M%S')}/{cfg.experiment.type}_{model_name}/test")
+                f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{time.strftime('%Y%m%d-%H%M%S')}/{exp_type}_{model_name}/test")
 
         # Create data module for evaluation
         data_module = TestDataModule(
@@ -54,7 +54,7 @@ def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, mode
         }
 
         # Log metrics with round number
-        if cfg.base.logging.selected_type == "wandb":
+        if cfg_base.logging.selected_type == "wandb":
             logger.log_metrics(results_dict, step=server_round)
 
         # in history.metrics_centralized

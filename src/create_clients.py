@@ -58,7 +58,7 @@ def _save_dataframes(df_list, test_df, names, processed_dir):
 def create_clients(base_cfg, experiment_type_cfg):
     dp = base_cfg.dataset_properties
     processed_dir = os.path.join(
-        dp.processed_dir, base_cfg.experiment.name)
+        dp.processed_dir, experiment_type_cfg.experiment_type)
     os.makedirs(processed_dir, exist_ok=True)
 
     # Load and preprocess datasets

@@ -4,11 +4,12 @@ model:
   type: "mlp"
 
 layers:
-  - dense
-  
+- dense
+
 dense:
   # units: [100, 80]
-  units: [200, 100, 80]
+  # units: [200, 100, 80]
+  units: [ 80 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.2

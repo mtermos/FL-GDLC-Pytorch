@@ -11,7 +11,7 @@ from src.data.data_module import FLDataModule
 from src.fl.fl_client import FLClient
 
 
-def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_logger, run_dtime):
+def generate_client_fn(data, labels, model, model_name, cfg_base, exp_type, config_to_add_to_logger, run_dtime):
 
     def client_fn(context: Context):
         warnings.filterwarnings(
@@ -23,34 +23,34 @@ def generate_client_fn(data, labels, model, model_name, cfg, config_to_add_to_lo
         client_id = int(context.node_config["partition-id"])
 
         if client_id in [0, 5]:
-            logging_type = cfg.base.logging.selected_type
+            logging_type = cfg_base.logging.selected_type
         else:
             logging_type = "tensorboard"
 
-        logging_cfg = cfg.base.logging[logging_type]
+        logging_cfg = cfg_base.logging[logging_type]
 
         if logging_type == "wandb":
             logger = WandbLogger(
                 project=logging_cfg.project,
                 config=config_to_add_to_logger,
                 version=f"{run_dtime}_{model_name}_{client_id}",
-                name=f"{cfg.experiment.type}_{model_name}_client_{client_id}",
-                save_dir=f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{cfg.experiment.type}_{model_name}_client_{client_id}"
+                name=f"{exp_type}_{model_name}_client_{client_id}",
+                save_dir=f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{exp_type}_{model_name}_client_{client_id}"
             )
 
         else:
             logger = TensorBoardLogger(
-                f"{logging_cfg.save_dir}/{cfg.experiment.exp}/{time.strftime('%Y%m%d-%H%M%S')}/{cfg.experiment.type}_{model_name}/client_{client_id}")
+                f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{time.strftime('%Y%m%d-%H%M%S')}/{exp_type}_{model_name}/client_{client_id}")
 
         X_train, X_val, y_train, y_val = train_test_split(
-            data[client_id], labels[client_id], test_size=cfg.base.datasets.val_size, random_state=cfg.base.random_seed)
+            data[client_id], labels[client_id], test_size=cfg_base.dataset_properties.val_size, random_state=cfg_base.random_seed)
         # Create data module
         data_module = FLDataModule(
             x_train=np.array(X_train),
             y_train=np.array(y_train),
             x_val=np.array(X_val),
             y_val=np.array(y_val),
-            batch_size=cfg.base.training.batch_size
+            batch_size=cfg_base.training.batch_size
         )
 
         return FLClient(
