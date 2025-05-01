@@ -69,6 +69,10 @@ class FLClient(fl.client.NumPyClient):
         return parameters_prime, num_examples, metrics
 
     def evaluate(self, parameters, config):
+        if not getattr(self.data_module, "do_validate", True):
+            # Return dummy values: no loss, zero examples, empty metrics
+            return 0.0, 0, {}
+
         # Set model parameters
         self.set_parameters(parameters)
 
@@ -81,4 +85,4 @@ class FLClient(fl.client.NumPyClient):
         f1s = float(results[0]['val_f1_score'])
         num_examples = len(self.data_module.val_dataset)
 
-        return loss, num_examples, {"accuracy": accuracy, "f1s": f1s}
+        return loss, num_examples, {"loss": loss, "accuracy": accuracy, "f1s": f1s}

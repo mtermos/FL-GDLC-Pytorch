@@ -26,8 +26,10 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
 
         if client_id in [0, 5]:
             logging_type = cfg_base.logging.selected_type
+            do_validate = True
         else:
             logging_type = "tensorboard"
+            do_validate = False
 
         logging_cfg = cfg_base.logging[logging_type]
 
@@ -77,14 +79,16 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             y_train=np.array(y_train),
             x_val=np.array(X_val),
             y_val=np.array(y_val),
-            batch_size=cfg_base.training.batch_size
+            batch_size=cfg_base.training.batch_size,
+            do_validate=do_validate
         )
 
         return FLClient(
             data_module=data_module,
             model=model,
             logger=logger,
-            logger_type=logging_type
+            logger_type=logging_type,
+            # do_validate=do_validate
         ).to_client()
 
     return client_fn

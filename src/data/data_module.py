@@ -4,9 +4,10 @@ import pytorch_lightning as pl
 
 
 class FLDataModule(pl.LightningDataModule):
-    def __init__(self, x_train, y_train, x_val, y_val, batch_size=32):
+    def __init__(self, x_train, y_train, x_val, y_val, batch_size=32, do_validate=True):
         super().__init__()
         self.batch_size = batch_size
+        self.do_validate = do_validate
 
         # Convert numpy arrays to PyTorch tensors
         self.x_train = torch.FloatTensor(x_train)
@@ -26,6 +27,8 @@ class FLDataModule(pl.LightningDataModule):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
 
     def val_dataloader(self):
+        if not self.do_validate:
+            return []
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=0)
 
 
