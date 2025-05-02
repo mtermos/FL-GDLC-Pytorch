@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-def calculate_df_properties(df, G, label_col, processed_dir, name):
+def calculate_df_properties(df, G, label_col, class_col, processed_dir, name):
     total_count = len(df)
 
     properties = {
@@ -22,7 +22,7 @@ def calculate_df_properties(df, G, label_col, processed_dir, name):
     properties["percentage_of_attack_records"] = (
         (num_attack * 100)/total_count)
 
-    properties["attacks"] = list(df["Attack"].unique())
+    properties["attacks"] = list(df[class_col].unique())
 
     properties["number_of_nodes"] = G.number_of_nodes()
     properties["number_of_edges"] = G.number_of_edges()

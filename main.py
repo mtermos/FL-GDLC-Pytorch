@@ -52,6 +52,7 @@ def main(experiment, exp_type, models, num_cpus):
     # for cl in clients_labels:
     #     print(cl.value_counts().to_dict())
     # return
+
     for model_name in models:
 
         config = {
@@ -91,31 +92,32 @@ def main(experiment, exp_type, models, num_cpus):
         # backend_config["init_args"] = {
         #     "_system_config": {"disable_dashboard": True}},
 
-    run_simulation(
-        server_app=server_app,
-        client_app=client_app,
-        num_supernodes=cfg_base.fl.num_clients,
-        backend_config=backend_config,
-    )
+        run_simulation(
+            server_app=server_app,
+            client_app=client_app,
+            num_supernodes=cfg_base.fl.num_clients,
+            backend_config=backend_config,
+        )
+
+        wandb.finish()
 
     if ray.is_initialized():
         ray.shutdown()
 
-    wandb.finish()
-
 
 if __name__ == "__main__":
-    experiment = "exp1_small"
+    experiment = "exp_test"
+    # experiment = "exp3_small"
     # experiment = "exp1"
     exp_types = [
-        # "baseline",
+        "baseline",
         # "selected_centralities",
-        "all_centralities",
+        # "all_centralities",
         # "pca_gdlc"
     ]
 
     models = [
-        # "mlp",
+        "mlp",
         "cnn",
         # "cnn_lstm"
     ]
