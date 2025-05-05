@@ -78,7 +78,9 @@ def mock_base_cfg():
             "min_evaluate_clients": 5,
             "min_available_clients": 5,
         },
-        "logging": {},
+        "logging": {
+            "selected_type": "test"
+        },
         "datasets": [
             {
                 "name": "test_dataset1",
