@@ -1,118 +1,95 @@
 import torch
 import pytest
 import numpy as np
-import pytorch_lightning as pl
 from src.models.pl_model import LitClassifier
 from src.models.mlp import MLP
 from src.models.cnn import CNN
 from src.models.cnn_lstm import CNNLSTM
 
-
-class MockModelConfig:
-    def __init__(self):
-        self.dense = type('DenseConfig', (), {
-            'activation': 'relu',
-            'units': [64, 32],
-            'batch_norm': True,
-            'layer_norm': False,
-            'dropout': True,
-            'dropout_rate': 0.2
-        })()
-        self.cnn = type('CNNConfig', (), {
-            'activation': 'relu',
-            'filters': [32, 64],
-            'kernel_sizes': [3, 3],
-            'batch_norm': True,
-            'dropout': True,
-            'dropout_rate': 0.2
-        })()
-        self.lstm = type('LSTMConfig', (), {
-            'activation': 'tanh',
-            'hidden_size': [128, 64],
-            'dropout': True,
-            'dropout_rate': 0.2
-        })()
+"""
+LitClassifier requires: model, model_name, training_cfg, labels_mapping, weight_tensor
 
 
-class MockTrainingConfig:
-    def __init__(self):
-        self.learning_rate = 0.001
-        self.weight_decay = 0.0001
-        self.optimizer = "adam"
-        self.multi_class = True
-        self.batch_size = 32
+For model I will create one using init_model
+For model_cfg and training_cfg, I will use the configurations mocked in conftest
 
-
-@pytest.fixture
-def model_config():
-    return MockModelConfig()
-
-
-@pytest.fixture
-def training_config():
-    return MockTrainingConfig()
+"""
 
 
 @pytest.fixture
 def labels_mapping():
-    return {0: "class_0", 1: "class_1"}
+    return {0: "class_0", 1: "class_1", 2: "class_1"}
 
 
 @pytest.fixture
-def mlp_model(model_config):
-    return MLP(model_config, num_features=10, num_classes=2)
+def mlp_model(mock_mlp_cfg):
+    return MLP(mock_mlp_cfg, num_features=10, num_classes=3)
 
 
 @pytest.fixture
-def cnn_model(model_config):
-    return CNN(model_config, num_features=100, num_classes=2)
+def cnn_model(mock_cnn_cfg):
+    return CNN(mock_cnn_cfg, num_features=100, num_classes=3)
 
 
 @pytest.fixture
-def cnn_lstm_model(model_config):
-    return CNNLSTM(model_config, num_features=100, num_classes=2)
+def cnn_lstm_model(mock_cnn_lstm_cfg):
+    return CNNLSTM(mock_cnn_lstm_cfg, num_features=100, num_classes=3)
 
 
 @pytest.fixture
-def lit_mlp_classifier(mlp_model, training_config, labels_mapping):
+def lit_mlp_classifier(mlp_model, mock_base_cfg, labels_mapping, weight_tensor):
+    training_config = mock_base_cfg.training
     return LitClassifier(
         model=mlp_model,
         model_name="mlp",
         training_cfg=training_config,
         labels_mapping=labels_mapping,
+        weight_tensor=weight_tensor,
         using_wandb=False
     )
 
 
 @pytest.fixture
-def lit_cnn_classifier(cnn_model, training_config, labels_mapping):
+def lit_cnn_classifier(cnn_model, mock_base_cfg, labels_mapping, weight_tensor):
+    training_config = mock_base_cfg.training
     return LitClassifier(
         model=cnn_model,
         model_name="cnn",
         training_cfg=training_config,
         labels_mapping=labels_mapping,
+        weight_tensor=weight_tensor,
         using_wandb=False
     )
 
 
 @pytest.fixture
-def lit_cnn_lstm_classifier(cnn_lstm_model, training_config, labels_mapping):
+def lit_cnn_lstm_classifier(cnn_lstm_model, mock_base_cfg, labels_mapping, weight_tensor):
+    training_config = mock_base_cfg.training
     return LitClassifier(
         model=cnn_lstm_model,
         model_name="cnn_lstm",
         training_cfg=training_config,
         labels_mapping=labels_mapping,
+        weight_tensor=weight_tensor,
         using_wandb=False
     )
 
 
-def test_lit_classifier_initialization(mlp_model, training_config, labels_mapping):
+@pytest.fixture
+def weight_tensor():
+    # e.g. for 3 classes, with custom weights
+    return torch.tensor([1.0, 0.5, 2.0], dtype=torch.float)
+
+
+def test_lit_classifier_initialization(mlp_model, mock_base_cfg, labels_mapping, weight_tensor):
+    training_config = mock_base_cfg.training
     """Test that LitClassifier initializes correctly"""
     classifier = LitClassifier(
         model=mlp_model,
         model_name="test",
         training_cfg=training_config,
         labels_mapping=labels_mapping,
+        weight_tensor=weight_tensor,
         using_wandb=False
     )
     assert isinstance(classifier, LitClassifier)
@@ -129,7 +106,7 @@ def test_lit_classifier_forward(lit_mlp_classifier):
     num_features = 10
     x = torch.randn(batch_size, num_features)
     output = lit_mlp_classifier(x)
-    assert output.shape == (batch_size, 2)  # num_classes = 2
+    assert output.shape == (batch_size, 3)  # num_classes = 3
 
 
 def test_lit_classifier_training_step(lit_mlp_classifier):

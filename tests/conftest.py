@@ -145,6 +145,7 @@ def mock_cnn_cfg():
     return OmegaConf.create({
         "model": {"name": "cnn", "type": "cnn"},
         "layers": ["cnn", "dense"],
+        "input_layer_norm": False,
         "cnn": {
             "filters": [50, 50],
             "kernel_sizes": [3, 3],
@@ -170,6 +171,7 @@ def mock_mlp_cfg():
     return OmegaConf.create({
         "model": {"name": "mlp", "type": "mlp"},
         "layers": ["dense"],
+        "input_layer_norm": False,
         "dense": {
             "units": [200, 100, 80],
             "activation": "leaky_relu",
@@ -186,6 +188,7 @@ def mock_cnn_lstm_cfg():
     return OmegaConf.create({
         "model": {"name": "cnn_lstm", "type": "cnn_lstm"},
         "layers": ["cnn", "lstm", "dense"],
+        "input_layer_norm": False,
         "cnn": {
             "filters": [80, 80],
             "kernel_sizes": [3, 3],
