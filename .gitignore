@@ -168,3 +168,4 @@ lightning_logs/
 tests/processed/
 
 local_variables.py
+test.ipynb

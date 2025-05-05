@@ -4,7 +4,12 @@ import networkx as nx
 import igraph as ig
 
 from src.graph.graph_utils import build_clean_graph, needs_community, detect_communities, attach_communities, separate_graphs_if_needed
-from src.graph.centralities import cal_betweenness_centrality, cal_k_core, cal_k_truss, comm_centrality, modularity_vitality
+from src.graph.centralities.betweenness import cal_betweenness_centrality
+from src.graph.centralities.k_core import cal_k_core
+from src.graph.centralities.k_truss import cal_k_truss
+from src.graph.centralities.comm_centrality import comm_centrality
+from src.graph.centralities.modularity_vitality import modularity_vitality
+
 
 logger = logging.getLogger(__name__)
 
