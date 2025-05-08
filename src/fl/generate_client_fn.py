@@ -2,13 +2,12 @@ import time
 import numpy as np
 import warnings
 import torch
-from logging import StreamHandler, Formatter
 
 from sklearn.model_selection import train_test_split
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from flwr.common import Context
 
-from src.data.data_module import FLDataModule
+from src.data.data_module import ClientTrainDataModule
 from src.fl.fl_client import FLClient
 from src.models.init_model import init_model
 
@@ -74,7 +73,7 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
                            weight_tensor, cfg_base.logging.selected_type == "wandb")
 
         # Create data module
-        data_module = FLDataModule(
+        data_module = ClientTrainDataModule(
             x_train=np.array(X_train),
             y_train=np.array(y_train),
             x_val=np.array(X_val),

@@ -6,7 +6,7 @@ from flwr.common.logger import log
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
 from src.models.init_model import init_model
-from src.data.data_module import TestDataModule
+from src.data.data_module import ServerEvalDataModule
 
 
 def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, model_name, cfg_base, exp_type, config_to_add_to_logger, run_dtime):
@@ -26,7 +26,7 @@ def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, mode
                 f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{time.strftime('%Y%m%d-%H%M%S')}/{exp_type}_{model_name}/test")
 
         # Create data module for evaluation
-        data_module = TestDataModule(
+        data_module = ServerEvalDataModule(
             x_test=np.array(x_test_server),
             y_test=np.array(y_test_server),
             batch_size=training_cfg.batch_size
