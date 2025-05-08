@@ -1,27 +1,15 @@
+defaults:
+- _self_
+- training@training
+
 random_seed: 42
 
 experiment:
   name: "exp1"
   description: "An FL environment created using the cic_ton_iot and the cic_ids_2017 datasets"
 
-training:
-  multi_class: true
-  batch_size: 256
-  max_epochs: 3
-
-  optimizer: "adam"
-  learning_rate: 0.001
-  lr_decay: true
-  lr_decay_rate: 0.5
-  weight_decay: 0.01
-
-  LAMBD_2: 0.01
-  dropout: true
-  dropout_rate: 0.5
-  batch_norm: true
-
 fl:
-  num_rounds: 15
+  num_rounds: 10
   fraction_fit: 1.0
   fraction_evaluate: 1.0
   num_clients: 8

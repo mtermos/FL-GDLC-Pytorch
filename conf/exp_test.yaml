@@ -1,24 +1,12 @@
+defaults:
+- _self_
+- training@training
+
 random_seed: 42
 
 experiment:
   name: "exp_test"
   description: "An FL environment created using a tiny dataset, just to test codebase"
-
-training:
-  multi_class: true
-  batch_size: 2
-  max_epochs: 2
-
-  optimizer: "adam"
-  learning_rate: 0.001
-  lr_decay: true
-  lr_decay_rate: 0.5
-  weight_decay: 0.01
-
-  LAMBD_2: 0.01
-  dropout: true
-  dropout_rate: 0.5
-  batch_norm: true
 
 fl:
   num_rounds: 5

@@ -16,7 +16,7 @@ from src.utils import NumpyEncoder, plot_confusion_matrix, calculate_fpr_fnr_wit
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, model, model_name, training_cfg, labels_mapping, weight_tensor, using_wandb=False):
+    def __init__(self, model, model_name, training_cfg, labels_mapping, weight_tensor=None, using_wandb=False):
 
         super().__init__()
         # self.save_hyperparameters()
@@ -35,6 +35,7 @@ class LitClassifier(pl.LightningModule):
             self.optimizer = Adam
         elif training_cfg.optimizer == "sgd":
             self.optimizer = SGD
+
         self.criterion = nn.CrossEntropyLoss(weight=weight_tensor)
 
         self.train_epoch_metrics = {}

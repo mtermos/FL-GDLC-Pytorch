@@ -49,25 +49,20 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             data[client_id], labels[client_id], test_size=cfg_base.dataset_properties.val_size, random_state=cfg_base.random_seed)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        counts = labels[client_id].value_counts().to_dict()
-        # total = sum(counts.values())
-        # weights = {lbl: total / (len(counts) * cnt)
-        #            for lbl, cnt in counts.items()}
-        # weight_tensor = torch.tensor(list(weights.values())).float().to(device)
-
-        num_classes = len(labels_mapping)
-        counts_arr = np.zeros(num_classes, dtype=float)
-        for lbl, cnt in counts.items():
-            counts_arr[lbl] = cnt
-
-        # 3) compute total and inverse-frequency weights, zeroing out missing classes
-        # sum over only present classes
-        total = counts_arr.sum()
-        weights_arr = np.zeros_like(counts_arr)               # start all-zeros
-        # which classes actually appear?
-        mask = counts_arr > 0
-        weights_arr[mask] = total / (num_classes * counts_arr[mask])
-        weight_tensor = torch.tensor(weights_arr).float().to(device)
+        
+        if cfg_base.training.use_weighted_loss:
+            counts = labels[client_id].value_counts().to_dict()
+            num_classes = len(labels_mapping)
+            counts_arr = np.zeros(num_classes, dtype=float)
+            for lbl, cnt in counts.items():
+                counts_arr[lbl] = cnt
+            total = counts_arr.sum()
+            weights_arr = np.zeros_like(counts_arr)
+            mask = counts_arr > 0
+            weights_arr[mask] = total / (num_classes * counts_arr[mask])
+            weight_tensor = torch.tensor(weights_arr).float().to(device)
+        else:
+            weight_tensor = None
 
         model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
                            weight_tensor, cfg_base.logging.selected_type == "wandb")
