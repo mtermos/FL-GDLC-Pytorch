@@ -68,6 +68,7 @@ def mock_base_cfg():
             "dropout": True,
             "dropout_rate": 0.5,
             "batch_norm": True,
+            "use_weighted_loss": False,
         },
         "fl": {
             "num_rounds": 15,

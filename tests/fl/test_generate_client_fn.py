@@ -83,7 +83,7 @@ def cfg_base(tmp_path):
         logging=logging,
         dataset_properties=SimpleNamespace(val_size=0.4),
         random_seed=123,
-        training=SimpleNamespace(batch_size=8),
+        training=SimpleNamespace(batch_size=8, use_weighted_loss=True),
     )
 
 
