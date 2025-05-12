@@ -49,14 +49,16 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             for lbl, cnt in counts.items():
                 counts_arr[lbl] = cnt
 
-            total = counts_arr.sum()
-            weights_arr = np.zeros_like(counts_arr)
-            mask = counts_arr > 0
-            weights_arr[mask] = total / (num_classes * counts_arr[mask])
-            weight_tensor = torch.tensor(weights_arr).float().to(device)
+            class_counts = torch.tensor(counts_arr, dtype=torch.float)
+            weights = 1.0 / (class_counts + 1e-6)
+            weights = weights / weights.sum()
+            weight_tensor = torch.tensor(weights).float().to(device)
+
+            # weight = 1. / counts_arr
+            # weight_tensor = torch.tensor(weight).float().to(device)
+
         else:
             weight_tensor = None
-
 
         model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
                            weight_tensor, cfg_base.logging.selected_type == "wandb")

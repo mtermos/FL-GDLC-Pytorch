@@ -9,14 +9,14 @@ experiment:
   description: "An FL environment created using a tiny dataset, just to test codebase"
 
 fl:
-  num_rounds: 5
+  num_rounds: 1
   fraction_fit: 1.0
   fraction_evaluate: 1.0
   num_clients: 5
   min_fit_clients: 5
   min_evaluate_clients: 5
   min_available_clients: 5
-  clients_to_val: [0, 3]
+  clients_to_val: [ 0, 3 ]
 
 logging:
   selected_type: "tensorboard"
