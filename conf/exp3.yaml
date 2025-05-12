@@ -16,6 +16,7 @@ fl:
   min_fit_clients: 3
   min_evaluate_clients: 3
   min_available_clients: 3
+  clients_to_val: [0]
 
 logging:
   selected_type: "wandb"

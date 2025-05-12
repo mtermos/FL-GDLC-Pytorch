@@ -7,7 +7,7 @@ layers:
 - cnn
 - dense
 
-input_layer_norm: false
+input_layer_norm: true
 
 # CNN layers
 cnn:
@@ -25,7 +25,7 @@ dense:
   units: [ 200 ]
   # activation: "relu"
   activation: "leaky_relu"
-  dropout: false
+  dropout: true
   dropout_rate: 0.5
-  batch_norm: false
+  batch_norm: true
   layer_norm: false

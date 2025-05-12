@@ -99,27 +99,28 @@ def main(experiment, exp_type, models, num_cpus):
             backend_config=backend_config,
         )
 
-        wandb.finish()
+        wandb.finish(quiet=True)
 
     if ray.is_initialized():
         ray.shutdown()
 
 
 if __name__ == "__main__":
-    experiment = "exp_test"
-    # experiment = "exp3_small"
+    # experiment = "exp_test"
+    # experiment = "exp1_small"
+    experiment = "exp1_mini_high"
     # experiment = "exp1"
     exp_types = [
         "baseline",
-        # "selected_centralities",
-        # "all_centralities",
-        # "pca_gdlc"
+        "selected_centralities",
+        "all_centralities",
+        "pca_gdlc"
     ]
 
     models = [
-        "mlp",
+        # "mlp",
         "cnn",
-        # "cnn_lstm"
+        "cnn_lstm"
     ]
 
     num_cpus = os.cpu_count()

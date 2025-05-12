@@ -1,5 +1,6 @@
 import flwr as fl
 import pytorch_lightning as pl
+import wandb
 import torch
 
 
@@ -85,4 +86,5 @@ class FLClient(fl.client.NumPyClient):
         f1s = float(results[0]['val_f1_score'])
         num_examples = len(self.data_module.val_dataset)
 
+        wandb.finish(quiet=True)
         return loss, num_examples, {"loss": loss, "accuracy": accuracy, "f1s": f1s}

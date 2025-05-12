@@ -9,13 +9,14 @@ experiment:
   description: "An FL environment created using the cic_ton_iot and the cic_ids_2017 datasets"
 
 fl:
-  num_rounds: 10
+  num_rounds: 5
   fraction_fit: 1.0
   fraction_evaluate: 1.0
   num_clients: 8
   min_fit_clients: 8
   min_evaluate_clients: 8
   min_available_clients: 8
+  clients_to_val: [0, 5]
 
 logging:
   selected_type: "wandb"

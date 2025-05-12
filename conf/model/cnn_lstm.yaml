@@ -8,12 +8,12 @@ layers:
 - lstm
 - dense
 
-input_layer_norm: false
+input_layer_norm: true
 
 # CNN layers
 cnn:
   filters: [ 80, 80 ]
-  kernel_sizes: [ 3, 3 ]
+  kernel_sizes: [ 5, 5 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
@@ -26,14 +26,14 @@ lstm:
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
-  batch_norm: false
+  batch_norm: true
   layer_norm: false
 
 # Dense layers
 dense:
-  units: [ 200, 200, 80 ]
+  units: [ 200, 100, 50 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.3
-  batch_norm: false
-  layer_norm: true
+  batch_norm: true
+  layer_norm: false

@@ -2,6 +2,7 @@ import time
 import numpy as np
 import warnings
 import torch
+import wandb
 
 from sklearn.model_selection import train_test_split
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -23,7 +24,7 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
 
         client_id = int(context.node_config["partition-id"])
 
-        if client_id in [0, 5]:
+        if client_id in cfg_base.fl.clients_to_val:
             logging_type = cfg_base.logging.selected_type
             do_validate = True
         else:
@@ -33,6 +34,7 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
         logging_cfg = cfg_base.logging[logging_type]
 
         if logging_type == "wandb":
+            wandb.finish()
             logger = WandbLogger(
                 project=logging_cfg.project,
                 config=config_to_add_to_logger,
@@ -65,7 +67,7 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             weight_tensor = None
 
         model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
-                           weight_tensor, cfg_base.logging.selected_type == "wandb")
+                           weight_tensor, logging_type == "wandb")
 
         # Create data module
         data_module = ClientTrainDataModule(

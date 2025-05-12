@@ -78,6 +78,7 @@ def mock_base_cfg():
             "min_fit_clients": 5,
             "min_evaluate_clients": 5,
             "min_available_clients": 5,
+            "clients_to_val": [0, 3]
         },
         "logging": {
             "selected_type": "test"

@@ -5,39 +5,45 @@ defaults:
 random_seed: 42
 
 experiment:
-  name: "exp2_small"
-  description: "An FL environment created using a portion of the cic_ton_iot dataset. Meant for quick testing."
+  name: "exp1_mini_high"
+  description: "An FL environment created using a portion of the cic_ton_iot and the cic_ids_2017 datasets. Meant for quick testing."
 
 fl:
-  num_rounds: 15
+  num_rounds: 5
   fraction_fit: 1.0
   fraction_evaluate: 1.0
-  num_clients: 5
-  min_fit_clients: 5
-  min_evaluate_clients: 5
-  min_available_clients: 5
-  clients_to_val: [0]
+  num_clients: 2
+  min_fit_clients: 2
+  min_evaluate_clients: 2
+  min_available_clients: 2
+  clients_to_val: [0, 1]
 
 logging:
   selected_type: "wandb"
   wandb:
-    project: "FL-GDLC-exp2-small"
+    project: "FL-GDLC-exp1-mini-high"
     entity: "mtermos-cesi"
-    tags: [ "exp2_small", "cic_ton_iot_5_percent" ]
+    tags: [ "exp1_mini_high", "cic_ton_iot_15_percent", "cic_ids_2017_15_percent" ]
     save_dir: "logs/wandb_runs"
   tensorboard:
-    project: "FL-GDLC-exp2-small"
+    project: "FL-GDLC-exp1-mini-high"
     save_dir: "logs/tensorboard_runs"
 
 datasets:
-- name: "cic_ton_iot_5_percent"
-  raw: "cic_ton_iot_5_percent.parquet"
+- name: "cic_ton_iot_15_percent"
+  raw: "cic_ton_iot_15_percent.parquet"
   raw_type: "parquet"
-  num_clients: 5
+  num_clients: 1
+  global_test_size: 0.1
+
+- name: "cic_ids_2017_15_percent"
+  raw: "cic_ids_2017_15_percent.parquet"
+  raw_type: "parquet"
+  num_clients: 1
   global_test_size: 0.1
 
 dataset_properties:
-  processed_dir: "datasets/exp2_small"
+  processed_dir: "datasets/exp1_mini_high"
   src_ip_col: "Src IP"
   dst_ip_col: "Dst IP"
   timestamp_col: "Timestamp"

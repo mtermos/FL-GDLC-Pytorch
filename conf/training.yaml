@@ -8,4 +8,5 @@ lr_decay: true
 lr_decay_rate: 0.05
 weight_decay: 0.001
 
+# use_weighted_loss: true
 use_weighted_loss: false
