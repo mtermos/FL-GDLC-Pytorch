@@ -37,7 +37,8 @@ def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, mode
         # Setup trainer
         trainer = pl.Trainer(
             max_epochs=1,
-            logger=logger
+            logger=logger,
+            enable_checkpointing=False
         )
 
         # Evaluate model

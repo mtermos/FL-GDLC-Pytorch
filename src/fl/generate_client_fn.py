@@ -84,6 +84,7 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             model=model,
             logger=logger,
             logger_type=logging_type,
+            num_local_epochs=cfg_base.training.max_epochs,
             # do_validate=do_validate
         ).to_client()
 

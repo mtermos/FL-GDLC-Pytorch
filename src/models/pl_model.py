@@ -98,6 +98,11 @@ class LitClassifier(pl.LightningModule):
                                average="weighted") * 100.0
         self.log("val_f1_score", weighted_f1, on_epoch=True,
                  prog_bar=True, batch_size=self.batch_size)
+        
+        report = classification_report(
+            all_targets, all_preds, digits=4, output_dict=False, zero_division=0)
+        
+        print("Validation Classification Report:\n", report)
 
         self.val_outputs = {"preds": [], "targets": []}
 

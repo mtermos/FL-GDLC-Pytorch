@@ -5,7 +5,7 @@ import torch
 
 
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, data_module, model, logger, logger_type):
+    def __init__(self, data_module, model, logger, logger_type, num_local_epochs):
         self.data_module = data_module
         self.model = model
         self.logger = logger
@@ -16,9 +16,10 @@ class FLClient(fl.client.NumPyClient):
 
         # Create trainer
         self.trainer = pl.Trainer(
-            max_epochs=1,  # Will be updated in fit()
+            max_epochs=num_local_epochs,
             logger=self.logger,
-            enable_progress_bar=False
+            enable_progress_bar=False,
+            enable_checkpointing=False,
         )
 
     def get_parameters(self, config):
@@ -38,9 +39,6 @@ class FLClient(fl.client.NumPyClient):
         # Update learning rate if provided
         if 'lr' in config:
             self.model.alpha = float(config['lr'])
-
-        # Update number of epochs
-        # self.trainer.max_epochs = config['local_epochs']
 
         # Train the model
         self.trainer.fit(self.model, self.data_module)
