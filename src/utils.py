@@ -1,10 +1,11 @@
-import os
+import torch
 import json
 import numpy as np
 import pandas as pd
 import itertools
 import matplotlib.pyplot as plt
 from hydra import initialize, compose
+from sklearn.utils import class_weight
 
 
 def load_df(file_path, raw_type):
@@ -143,3 +144,44 @@ def calculate_fpr_fnr_with_global(cm):
     results["global"]["FNR"] = global_FNR
 
     return results
+
+
+def compute_class_weights(targets, classes):
+    
+    counts = targets.value_counts().to_dict()
+    counts_arr = np.zeros(len(classes), dtype=float)
+    for lbl, cnt in counts.items():
+        counts_arr[lbl] = cnt
+
+    # version 1 - wrong
+    # total = counts_arr.sum()
+    # weights_arr = np.zeros_like(counts_arr)
+    # mask = counts_arr > 0
+    # weights_arr[mask] = total / (num_classes * counts_arr[mask])
+    # weight_tensor = torch.tensor(weights_arr).float().to(device)
+
+    
+    # version 2
+    class_counts = torch.tensor(counts_arr, dtype=torch.float)
+    weights = 1.0 / (class_counts + 1e-6)
+    weights = weights / weights.sum()
+    weight_tensor = torch.FloatTensor(weights)
+
+    # version 3
+    # weight = 1. / counts_arr
+    # weight_tensor = torch.tensor(weight).float().to(device)
+
+    # version 4
+        
+    # present = np.array(list(counts.keys()))  
+
+    # weights_present = class_weight.compute_class_weight(
+    #     'balanced', classes=present, y=targets)
+    # weights = np.zeros(len(classes), dtype=float)
+    # for cls, w in zip(present, weights_present):
+    #     weights[cls] = w
+    # weight_tensor = torch.FloatTensor(weights)
+    
+
+
+    return weight_tensor

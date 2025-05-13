@@ -11,7 +11,7 @@ from flwr.common import Context
 from src.data.data_module import ClientTrainDataModule
 from src.fl.fl_client import FLClient
 from src.models.init_model import init_model
-
+from src.utils import compute_class_weights
 
 def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_add_to_logger, run_dtime, input_dim, labels_mapping):
 
@@ -53,16 +53,7 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         if cfg_base.training.use_weighted_loss:
-            counts = labels[client_id].value_counts().to_dict()
-            num_classes = len(labels_mapping)
-            counts_arr = np.zeros(num_classes, dtype=float)
-            for lbl, cnt in counts.items():
-                counts_arr[lbl] = cnt
-            total = counts_arr.sum()
-            weights_arr = np.zeros_like(counts_arr)
-            mask = counts_arr > 0
-            weights_arr[mask] = total / (num_classes * counts_arr[mask])
-            weight_tensor = torch.tensor(weights_arr).float().to(device)
+            weight_tensor = compute_class_weights(labels[client_id], np.array(list(labels_mapping.keys()))).to(device)
         else:
             weight_tensor = None
 

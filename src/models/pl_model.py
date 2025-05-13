@@ -2,6 +2,7 @@ import os
 import json
 import wandb
 import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
 import torch as th
 import torch.nn as nn
@@ -30,6 +31,7 @@ class LitClassifier(pl.LightningModule):
         self.using_wandb = using_wandb
         self.multi_class = training_cfg.multi_class
         self.batch_size = training_cfg.batch_size
+        self.server_round = 0
 
         if training_cfg.optimizer == "adam":
             self.optimizer = Adam
@@ -90,7 +92,9 @@ class LitClassifier(pl.LightningModule):
 
         return {"val_loss": loss, "val_acc": acc}
 
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self):        
+        if getattr(self.trainer, "sanity_checking", False):
+            return  # skip any summary/logging during the sanity‐check
         all_preds = th.cat(self.val_outputs["preds"]).detach().cpu().numpy()
         all_targets = th.cat(
             self.val_outputs["targets"]).detach().cpu().numpy()
@@ -103,7 +107,39 @@ class LitClassifier(pl.LightningModule):
             all_targets, all_preds, digits=4, output_dict=False, zero_division=0)
         
         print("Validation Classification Report:\n", report)
+                
+        if self.using_wandb:
+            class_report = classification_report(all_targets, all_preds,
+                                                digits=4,
+                                                output_dict=True,
+                                                zero_division=0)
+            report_df = pd.DataFrame(class_report).T.reset_index()
+            report_df = report_df.rename(columns={"index": "class"})
 
+            table = wandb.Table(dataframe=report_df)
+            wandb.log({f"classification_report_{self.server_round}": table})
+        # columns = ["class", "precision", "recall", "f1-score", "support"]
+        # data = [
+        #     [row["class"],
+        #     row["precision"],
+        #     row["recall"],
+        #     row["f1-score"],
+        #     int(row["support"])]
+        #     for _, row in report_df.iterrows()
+        # ]
+        # table2 = wandb.Table(data=data, columns=columns)
+        # wandb.log({"classification_report_manual": table2})
+        # report_columns =  ["Class", "Precision", "Recall", "F1-score", "Support"]
+        # class_report = classification_report(all_targets,all_preds).splitlines()
+
+        # report_table = []
+        # for line in class_report[2:(len(self.labels)+2)]:
+        #     report_table.append(line.split())
+
+        # wandb.log({
+        #     "Confusion Matix": wandb.plot.confusion_matrix(y_true=all_targets, preds=all_preds, class_names=self.labels),
+        #     "Classification Report": wandb.Table(data=report_table, columns=report_columns)
+        #     })
         self.val_outputs = {"preds": [], "targets": []}
 
     def test_step(self, batch, batch_idx):

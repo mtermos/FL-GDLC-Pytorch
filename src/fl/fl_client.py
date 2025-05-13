@@ -14,13 +14,23 @@ class FLClient(fl.client.NumPyClient):
         # Setup data module
         self.data_module.setup()
 
-        # Create trainer
-        self.trainer = pl.Trainer(
+        self.train_trainer = pl.Trainer(
             max_epochs=num_local_epochs,
             logger=self.logger,
             enable_progress_bar=False,
             enable_checkpointing=False,
+            num_sanity_val_steps=0,
+            limit_val_batches=0,     # ← no val here
         )
+
+        self.eval_trainer = pl.Trainer(
+            logger=self.logger,
+            enable_progress_bar=False,
+            enable_checkpointing=False,
+            num_sanity_val_steps=0,   # ← no sanity‐check
+            limit_train_batches=0,    # ← no train here
+        )
+
 
     def get_parameters(self, config):
         return self.model.get_parameters()
@@ -41,7 +51,7 @@ class FLClient(fl.client.NumPyClient):
             self.model.alpha = float(config['lr'])
 
         # Train the model
-        self.trainer.fit(self.model, self.data_module)
+        self.train_trainer.fit(self.model, self.data_module)
 
         # Get updated parameters
         parameters_prime = self.get_parameters({})
@@ -49,11 +59,11 @@ class FLClient(fl.client.NumPyClient):
 
         # Get metrics
         metrics = {
-            'train_loss': float(self.trainer.callback_metrics.get('train_loss', 0.0)),
-            'train_f1_score': float(self.trainer.callback_metrics.get('train_f1_score', 0.0)),
-            'val_loss': float(self.trainer.callback_metrics.get('val_loss', 0.0)),
-            'val_acc': float(self.trainer.callback_metrics.get('val_acc', 0.0)),
-            'val_f1_score': float(self.trainer.callback_metrics.get('val_f1_score', 0.0))
+            'train_loss': float(self.train_trainer.callback_metrics.get('train_loss', 0.0)),
+            'train_f1_score': float(self.train_trainer.callback_metrics.get('train_f1_score', 0.0)),
+            # 'val_loss': float(self.train_trainer.callback_metrics.get('val_loss', 0.0)),
+            # 'val_acc': float(self.train_trainer.callback_metrics.get('val_acc', 0.0)),
+            # 'val_f1_score': float(self.train_trainer.callback_metrics.get('val_f1_score', 0.0))
         }
 
         if 'server_round' in config:
@@ -72,11 +82,14 @@ class FLClient(fl.client.NumPyClient):
             # Return dummy values: no loss, zero examples, empty metrics
             return 0.0, 0, {}
 
+        if 'server_round' in config:
+            server_round = int(config['server_round'])
+            self.model.server_round = server_round
         # Set model parameters
         self.set_parameters(parameters)
-
+        
         # Evaluate the model
-        results = self.trainer.validate(self.model, self.data_module)
+        results = self.eval_trainer.validate(self.model, self.data_module)
 
         # Extract metrics
         loss = float(results[0]['val_loss'])
@@ -84,5 +97,12 @@ class FLClient(fl.client.NumPyClient):
         f1s = float(results[0]['val_f1_score'])
         num_examples = len(self.data_module.val_dataset)
 
+        metrics = {"val_loss": loss, "val_accuracy": accuracy, "val_f1s": f1s}
+        
+        if 'server_round' in config:
+            if self.logger_type == "wandb":
+                metrics["round"] = server_round
+                self.logger.log_metrics(metrics, step=server_round)
+
         wandb.finish(quiet=True)
-        return loss, num_examples, {"loss": loss, "accuracy": accuracy, "f1s": f1s}
+        return loss, num_examples, metrics
