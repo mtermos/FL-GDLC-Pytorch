@@ -25,8 +25,8 @@ def test_weighted_fit_agg():
 def test_weighted_eval_agg():
     # Test case 1: Basic aggregation
     metrics = [
-        (100, {"loss": 0.5, "accuracy": 0.8, "f1s": 0.7}),
-        (200, {"loss": 0.3, "accuracy": 0.9, "f1s": 0.8})
+        (100, {"val_loss": 0.5, "val_accuracy": 0.8, "val_f1s": 0.7}),
+        (200, {"val_loss": 0.3, "val_accuracy": 0.9, "val_f1s": 0.8})
     ]
     result = weighted_eval_agg(metrics)
 
@@ -34,15 +34,15 @@ def test_weighted_eval_agg():
     expected_acc = (100 * 0.8 + 200 * 0.9) / 300
     expected_f1 = (100 * 0.7 + 200 * 0.8) / 300
 
-    assert abs(result["val_loss"] - expected_loss) < 1e-6
-    assert abs(result["val_acc"] - expected_acc) < 1e-6
-    assert abs(result["val_f1_score"] - expected_f1) < 1e-6
+    assert abs(result["val_loss_avg"] - expected_loss) < 1e-6
+    assert abs(result["val_acc_avg"] - expected_acc) < 1e-6
+    assert abs(result["val_f1s_avg"] - expected_f1) < 1e-6
 
     # Test case 2: Empty metrics
     assert weighted_eval_agg([]) == {}
 
     # Test case 3: Zero examples
-    metrics = [(0, {"loss": 0.5, "accuracy": 0.8, "f1s": 0.7})]
+    metrics = [(0, {"val_loss": 0.5, "val_accuracy": 0.8, "val_f1s": 0.7})]
     assert weighted_eval_agg(metrics) == {}
 
 

@@ -56,7 +56,8 @@ def fl_client(mock_data_module, mock_model, mock_logger):
         data_module=mock_data_module,
         model=mock_model,
         logger=mock_logger,
-        logger_type="wandb"
+        logger_type="wandb",
+        num_local_epochs=1
     )
 
 
@@ -75,8 +76,8 @@ def test_set_parameters(fl_client):
 @patch('pytorch_lightning.Trainer.validate')
 def test_fit(mock_validate, mock_fit, fl_client):
     # Mock the trainer's callback_metrics
-    fl_client.trainer.callback_metrics.clear()
-    fl_client.trainer.callback_metrics.update({
+    fl_client.train_trainer.callback_metrics.clear()
+    fl_client.train_trainer.callback_metrics.update({
         'train_loss':    torch.tensor(0.5),
         'train_f1_score': torch.tensor(0.8),
         'val_loss':      torch.tensor(0.4),
@@ -116,9 +117,9 @@ def test_evaluate(mock_validate, fl_client):
     assert isinstance(loss, float)
     assert num_examples == len(fl_client.data_module.val_dataset)
     assert isinstance(metrics, dict)
-    assert 'loss' in metrics
-    assert 'accuracy' in metrics
-    assert 'f1s' in metrics
+    assert 'val_loss' in metrics
+    assert 'val_accuracy' in metrics
+    assert 'val_f1s' in metrics
 
 
 def test_evaluate_no_validation(fl_client):

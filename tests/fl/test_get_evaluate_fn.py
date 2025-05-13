@@ -67,9 +67,9 @@ def patch_dependencies(monkeypatch):
 
     # 4) Dummy Trainer
     class DummyTrainer:
-        def __init__(self, max_epochs, logger):
+        def __init__(self, max_epochs, logger, enable_checkpointing, num_sanity_val_steps):
             captured["trainer_init"] = dict(
-                max_epochs=max_epochs, logger=logger
+                max_epochs=max_epochs, logger=logger, enable_checkpointing=enable_checkpointing, num_sanity_val_steps=num_sanity_val_steps
             )
             self.logger = logger
 

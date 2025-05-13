@@ -15,20 +15,7 @@ from sklearn.metrics import (
 )
 
 from src.utils import NumpyEncoder, plot_confusion_matrix, calculate_fpr_fnr_with_global
-
-
-def focal_loss(logits, targets, alpha=1.0, gamma=2.0, reduction='mean'):
-    # compute per‐sample CE
-    ce = F.cross_entropy(logits, targets, reduction='none')
-    # pt = p_t, the model's prob on the true class
-    pt = th.exp(-ce)
-    loss = (alpha * (1 - pt)**gamma) * ce   # focal scaling
-    if reduction == 'mean':
-        return loss.mean()
-    elif reduction == 'sum':
-        return loss.sum()
-    else:
-        return loss
+from src.models.loss_functions import FocalLoss
 
 
 class LitClassifier(pl.LightningModule):
@@ -54,7 +41,8 @@ class LitClassifier(pl.LightningModule):
             self.optimizer = SGD
 
         if training_cfg.loss_type == "focal":
-            self.criterion = focal_loss
+            self.criterion = FocalLoss(alpha=training_cfg.focal_loss_alpha,
+                                       gamma=training_cfg.focal_loss_gamma, reduction=training_cfg.focal_loss_reduction)
         elif training_cfg.loss_type == "cross_entropy":
             self.criterion = nn.CrossEntropyLoss(weight=weight_tensor)
 
