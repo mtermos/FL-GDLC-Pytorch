@@ -6,6 +6,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch as th
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim import Adam, SGD
 from sklearn.metrics import (
     classification_report,
@@ -14,6 +15,20 @@ from sklearn.metrics import (
 )
 
 from src.utils import NumpyEncoder, plot_confusion_matrix, calculate_fpr_fnr_with_global
+
+
+def focal_loss(logits, targets, alpha=1.0, gamma=2.0, reduction='mean'):
+    # compute per‐sample CE
+    ce = F.cross_entropy(logits, targets, reduction='none')
+    # pt = p_t, the model's prob on the true class
+    pt = th.exp(-ce)
+    loss = (alpha * (1 - pt)**gamma) * ce   # focal scaling
+    if reduction == 'mean':
+        return loss.mean()
+    elif reduction == 'sum':
+        return loss.sum()
+    else:
+        return loss
 
 
 class LitClassifier(pl.LightningModule):
@@ -38,7 +53,10 @@ class LitClassifier(pl.LightningModule):
         elif training_cfg.optimizer == "sgd":
             self.optimizer = SGD
 
-        self.criterion = nn.CrossEntropyLoss(weight=weight_tensor)
+        if training_cfg.loss_type == "focal":
+            self.criterion = focal_loss
+        elif training_cfg.loss_type == "cross_entropy":
+            self.criterion = nn.CrossEntropyLoss(weight=weight_tensor)
 
         self.train_epoch_metrics = {}
         self.val_epoch_metrics = {}
@@ -92,7 +110,7 @@ class LitClassifier(pl.LightningModule):
 
         return {"val_loss": loss, "val_acc": acc}
 
-    def on_validation_epoch_end(self):        
+    def on_validation_epoch_end(self):
         if getattr(self.trainer, "sanity_checking", False):
             return  # skip any summary/logging during the sanity‐check
         all_preds = th.cat(self.val_outputs["preds"]).detach().cpu().numpy()
@@ -102,17 +120,17 @@ class LitClassifier(pl.LightningModule):
                                average="weighted") * 100.0
         self.log("val_f1_score", weighted_f1, on_epoch=True,
                  prog_bar=True, batch_size=self.batch_size)
-        
+
         report = classification_report(
             all_targets, all_preds, digits=4, output_dict=False, zero_division=0)
-        
+
         print("Validation Classification Report:\n", report)
-                
+
         if self.using_wandb:
             class_report = classification_report(all_targets, all_preds,
-                                                digits=4,
-                                                output_dict=True,
-                                                zero_division=0)
+                                                 digits=4,
+                                                 output_dict=True,
+                                                 zero_division=0)
             report_df = pd.DataFrame(class_report).T.reset_index()
             report_df = report_df.rename(columns={"index": "class"})
 

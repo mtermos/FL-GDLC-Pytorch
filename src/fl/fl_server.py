@@ -37,6 +37,7 @@ def weighted_eval_agg(
         "val_f1s_avg": sum(n * m["val_f1s"] for n, m in filtered) / total,
     }
 
+
 def get_on_evaluate_config():
     def evaluate_config_fn(server_round: int):
         return {
@@ -44,13 +45,15 @@ def get_on_evaluate_config():
         }
     return evaluate_config_fn
 
+
 def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_add_to_logger, run_dtime, input_dim, labels_mapping):
     def server_fn(context: Context):
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         if cfg_base.training.use_weighted_loss:
-            weight_tensor = compute_class_weights(labels, np.array(list(labels_mapping.keys()))).to(device)
+            weight_tensor = compute_class_weights(labels, np.array(list(labels_mapping.keys(
+            ))), version=cfg_base.training.weighted_loss_version, device=device)
         else:
             weight_tensor = None
 

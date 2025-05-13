@@ -5,7 +5,7 @@ import pandas as pd
 import itertools
 import matplotlib.pyplot as plt
 from hydra import initialize, compose
-from sklearn.utils import class_weight
+from sklearn.utils import class_weight as sklearn_class_weight
 
 
 def load_df(file_path, raw_type):
@@ -146,42 +146,118 @@ def calculate_fpr_fnr_with_global(cm):
     return results
 
 
-def compute_class_weights(targets, classes):
-    
+def compute_class_weights(targets: pd.Series,
+                          classes: np.ndarray,
+                          version: str = 'v4',
+                          device: torch.device = torch.device('cpu')) -> torch.Tensor:
+    """
+    Compute class weights for CrossEntropyLoss, selectable by `version`.
+
+    Parameters
+    ----------
+    targets : pd.Series
+        Series of integer class labels.
+    classes : ndarray of shape (num_classes,)
+        Array of all possible class labels (e.g. np.arange(num_classes)).
+    version : str, one of {'v1', 'v2', 'v3', 'v4'}
+        Which weighting strategy to use:
+          - v1: total/(num_classes*count)  (naïve “balanced”)
+          - v2: normalize(1/(count + eps))
+          - v3: raw inverse (1/count)
+          - v4: sklearn compute_class_weight('balanced')
+    device : torch.device
+        Where to put the resulting tensor.
+
+    Returns
+    -------
+    torch.Tensor of shape (num_classes,)
+        Float tensor of weights.
+    """
+    # get counts per class label
     counts = targets.value_counts().to_dict()
-    counts_arr = np.zeros(len(classes), dtype=float)
+    num_classes = len(classes)
+    counts_arr = np.zeros(num_classes, dtype=float)
     for lbl, cnt in counts.items():
-        counts_arr[lbl] = cnt
+        counts_arr[int(lbl)] = cnt
 
-    # version 1 - wrong
-    # total = counts_arr.sum()
-    # weights_arr = np.zeros_like(counts_arr)
-    # mask = counts_arr > 0
-    # weights_arr[mask] = total / (num_classes * counts_arr[mask])
-    # weight_tensor = torch.tensor(weights_arr).float().to(device)
+    if version == 'v1':
+        # v1: total samples divided equally across classes
+        total = counts_arr.sum()
+        weights_arr = np.zeros_like(counts_arr)
+        mask = counts_arr > 0
+        weights_arr[mask] = total / (num_classes * counts_arr[mask])
+        weight_tensor = torch.tensor(
+            weights_arr, dtype=torch.float, device=device)
 
-    
-    # version 2
-    class_counts = torch.tensor(counts_arr, dtype=torch.float)
-    weights = 1.0 / (class_counts + 1e-6)
-    weights = weights / weights.sum()
-    weight_tensor = torch.FloatTensor(weights)
+    elif version == 'v2':
+        # v2: normalized inverse-frequency with epsilon
+        class_counts = torch.tensor(
+            counts_arr, dtype=torch.float, device=device)
+        weight_tensor = 1.0 / (class_counts + 1e-6)
+        weight_tensor = weight_tensor / weight_tensor.sum()
 
-    # version 3
-    # weight = 1. / counts_arr
-    # weight_tensor = torch.tensor(weight).float().to(device)
+    elif version == 'v3':
+        # v3: raw inverse-frequency
+        counts_tensor = torch.tensor(
+            counts_arr, dtype=torch.float, device=device)
+        # avoid division by zero
+        inv = torch.zeros_like(counts_tensor)
+        mask = counts_tensor > 0
+        inv[mask] = 1.0 / counts_tensor[mask]
+        weight_tensor = inv
 
-    # version 4
-        
-    # present = np.array(list(counts.keys()))  
+    elif version == 'v4':
+        # v4: sklearn compute_class_weight
+        present = np.array(list(counts.keys()), dtype=int)
+        w_present = sklearn_class_weight.compute_class_weight(
+            class_weight='balanced', classes=present, y=targets.values
+        )
+        weights_arr = np.zeros_like(counts_arr)
+        for cls, w in zip(present, w_present):
+            weights_arr[int(cls)] = w
+        weight_tensor = torch.tensor(
+            weights_arr, dtype=torch.float, device=device)
 
-    # weights_present = class_weight.compute_class_weight(
-    #     'balanced', classes=present, y=targets)
-    # weights = np.zeros(len(classes), dtype=float)
-    # for cls, w in zip(present, weights_present):
-    #     weights[cls] = w
-    # weight_tensor = torch.FloatTensor(weights)
-    
-
+    else:
+        raise ValueError(
+            f"Unknown version '{version}', choose one of {{'v1','v2','v3','v4'}}")
 
     return weight_tensor
+
+
+# def compute_class_weights(targets, classes):
+
+#     counts = targets.value_counts().to_dict()
+#     counts_arr = np.zeros(len(classes), dtype=float)
+#     for lbl, cnt in counts.items():
+#         counts_arr[lbl] = cnt
+
+#     # version 1 - wrong
+#     # total = counts_arr.sum()
+#     # weights_arr = np.zeros_like(counts_arr)
+#     # mask = counts_arr > 0
+#     # weights_arr[mask] = total / (num_classes * counts_arr[mask])
+#     # weight_tensor = torch.tensor(weights_arr).float().to(device)
+
+#     # version 2
+#     class_counts = torch.tensor(counts_arr, dtype=torch.float)
+#     weights = 1.0 / (class_counts + 1e-6)
+#     weights = weights / weights.sum()
+#     weight_tensor = torch.FloatTensor(weights)
+
+#     # version 3
+#     # weight = 1. / counts_arr
+#     # weight_tensor = torch.tensor(weight).float().to(device)
+
+#     # version 4
+
+#     # present = np.array(list(counts.keys()))
+
+#     # weights_present = class_weight.compute_class_weight(
+#     #     'balanced', classes=present, y=targets)
+#     # weights = np.zeros(len(classes), dtype=float)
+#     # for cls, w in zip(present, weights_present):
+#     #     weights[cls] = w
+#     # weight_tensor = torch.FloatTensor(weights)
+
+#     return weight_tensor

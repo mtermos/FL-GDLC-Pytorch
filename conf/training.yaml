@@ -10,3 +10,7 @@ weight_decay: 0.001
 
 # use_weighted_loss: true
 use_weighted_loss: false
+weighted_loss_version: "v4"
+
+# loss_type: "cross_entropy"
+loss_type: "focal"
