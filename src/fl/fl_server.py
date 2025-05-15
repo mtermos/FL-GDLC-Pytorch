@@ -46,6 +46,40 @@ def get_on_evaluate_config():
     return evaluate_config_fn
 
 
+def create_strategy(cfg_base, evaluate_fn):
+    # 1) Map names to classes
+    strategy_classes = {
+        "FedAvg": FedAvg,
+        "FedProx": FedProx,
+    }
+    cls = strategy_classes.get(cfg_base.training.fl_strategy)
+    if cls is None:
+        raise ValueError(
+            f"Unknown strategy: {cfg_base.training.fl_strategy!r}")
+
+    # 2) Build the shared kwargs
+    common_kwargs = dict(
+        fraction_fit=cfg_base.fl.fraction_fit,
+        min_fit_clients=cfg_base.fl.min_fit_clients,
+        fraction_evaluate=cfg_base.fl.fraction_evaluate,
+        min_evaluate_clients=cfg_base.fl.min_evaluate_clients,
+        min_available_clients=cfg_base.fl.min_available_clients,
+        on_evaluate_config_fn=get_on_evaluate_config(),
+        on_fit_config_fn=get_on_fit_config(cfg_base.training),
+        evaluate_fn=evaluate_fn,
+        fit_metrics_aggregation_fn=weighted_fit_agg,
+        evaluate_metrics_aggregation_fn=weighted_eval_agg,
+    )
+
+    # 3) Add any strategy-specific args
+    extra_kwargs = {}
+    if cfg_base.training.fl_strategy == "FedProx":
+        extra_kwargs["proximal_mu"] = cfg_base.training.fl_proximal_mu
+
+    # 4) Instantiate
+    return cls(**common_kwargs, **extra_kwargs)
+
+
 def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_add_to_logger, run_dtime, input_dim, labels_mapping):
     def server_fn(context: Context):
 
@@ -59,31 +93,22 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
 
         model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
                            weight_tensor, cfg_base.logging.selected_type == "wandb")
-        strategy = FedProx(
-            proximal_mu=0.5,
-            # strategy = FedAvg(
-            fraction_fit=cfg_base.fl.fraction_fit,
-            min_fit_clients=cfg_base.fl.min_fit_clients,
-            fraction_evaluate=cfg_base.fl.fraction_evaluate,
-            min_evaluate_clients=cfg_base.fl.min_evaluate_clients,
-            min_available_clients=cfg_base.fl.min_available_clients,
-            on_evaluate_config_fn=get_on_evaluate_config(),
-            on_fit_config_fn=get_on_fit_config(cfg_base.training),
-            evaluate_fn=get_evaluate_fn(
-                data,
-                labels,
-                cfg_base.training,
-                model,
-                model_cfg.model.name,
-                cfg_base,
-                exp_type,
-                config_to_add_to_logger,
-                run_dtime
-            ),
-            fit_metrics_aggregation_fn=weighted_fit_agg,
-            evaluate_metrics_aggregation_fn=weighted_eval_agg,
+
+        evaluate_fn = get_evaluate_fn(
+            data,
+            labels,
+            cfg_base.training,
+            model,
+            model_cfg.model.name,
+            cfg_base,
+            exp_type,
+            config_to_add_to_logger,
+            run_dtime
         )
-        config = ServerConfig(num_rounds=cfg_base.fl.num_rounds)
-        return ServerAppComponents(strategy=strategy, config=config)
+
+        return ServerAppComponents(
+            strategy=create_strategy(cfg_base, evaluate_fn),
+            config=ServerConfig(num_rounds=cfg_base.fl.num_rounds)
+        )
 
     return server_fn
