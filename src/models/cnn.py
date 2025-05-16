@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from collections import OrderedDict
 
 from src.models.activations import ACTIVATIONS
 from src.models.normalization_layers import ChannelLayerNorm
@@ -48,21 +49,45 @@ class CNN(nn.Module):
 
         # print(f"==>> input_dim: {input_dim}")
 
-        fc_layers = []
-        for hidden_dim in model_cfg.dense.units:
-            fc_layers.append(nn.Linear(input_dim, hidden_dim))
-            fc_layers.append(self.dense_activation())
+        # fc_layers = []
+        # for hidden_dim in model_cfg.dense.units:
+        #     fc_layers.append(nn.Linear(input_dim, hidden_dim))
+        #     fc_layers.append(self.dense_activation())
+        #     if model_cfg.dense.batch_norm:
+        #         fc_layers.append(nn.BatchNorm1d(hidden_dim))
+        #     if model_cfg.dense.layer_norm:
+        #         fc_layers.append(nn.LayerNorm(hidden_dim))
+        #     if model_cfg.dense.dropout:
+        #         fc_layers.append(nn.Dropout(model_cfg.dense.dropout_rate))
+        #     input_dim = hidden_dim
+
+        fc_layers = OrderedDict()
+        idx = 0
+        for i, hidden_dim in enumerate(model_cfg.dense.units, start=1):
+            fc_layers[f"linear{i}"] = nn.Linear(input_dim, hidden_dim)
+            idx += 1
+
+            fc_layers[f"act{i}"] = self.dense_activation()
+
             if model_cfg.dense.batch_norm:
-                fc_layers.append(nn.BatchNorm1d(hidden_dim))
+                fc_layers[f"bn{i}"] = nn.BatchNorm1d(hidden_dim)
+                idx += 1
+
             if model_cfg.dense.layer_norm:
-                fc_layers.append(nn.LayerNorm(hidden_dim))
+                fc_layers[f"ln{i}"] = nn.LayerNorm(hidden_dim)
+                idx += 1
+
             if model_cfg.dense.dropout:
-                fc_layers.append(nn.Dropout(model_cfg.dense.dropout_rate))
+                fc_layers[f"drop{i}"] = nn.Dropout(
+                    model_cfg.dense.dropout_rate)
+                idx += 1
+
             input_dim = hidden_dim
+        # fc_layers .append(nn.Linear(input_dim, num_classes))
+        fc_layers["out"] = nn.Linear(input_dim, num_classes)
 
-        fc_layers .append(nn.Linear(input_dim, num_classes))
-
-        self.classifier = nn.Sequential(*fc_layers)
+        self.classifier = nn.Sequential(fc_layers)
+        # self.classifier = nn.Sequential(*fc_layers)
 
     def forward(self, x):
         x = self.input_norm(x)

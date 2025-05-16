@@ -22,10 +22,10 @@ cnn:
 
 # Dense layers
 dense:
-  units: [ 200 ]
+  units: [ 200, 100 ]
   # activation: "relu"
   activation: "leaky_relu"
-  dropout: true
+  dropout: false
   dropout_rate: 0.5
   batch_norm: true
   layer_norm: false

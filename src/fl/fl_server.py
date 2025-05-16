@@ -4,6 +4,7 @@ from flwr.server.strategy import FedAvg, FedProx
 from flwr.common import Context
 import numpy as np
 
+from src.fl.strategies import FedDyn, FedBN
 from src.fl.get_evaluate_fn import get_evaluate_fn
 from src.fl.get_on_fit_config import get_on_fit_config
 from src.models.init_model import init_model
@@ -46,11 +47,13 @@ def get_on_evaluate_config():
     return evaluate_config_fn
 
 
-def create_strategy(cfg_base, evaluate_fn):
+def create_strategy(cfg_base, evaluate_fn, parameter_names):
     # 1) Map names to classes
     strategy_classes = {
         "FedAvg": FedAvg,
         "FedProx": FedProx,
+        "FedDyn": FedDyn,
+        "FedBN": FedBN,
     }
     cls = strategy_classes.get(cfg_base.training.fl_strategy)
     if cls is None:
@@ -75,6 +78,8 @@ def create_strategy(cfg_base, evaluate_fn):
     extra_kwargs = {}
     if cfg_base.training.fl_strategy == "FedProx":
         extra_kwargs["proximal_mu"] = cfg_base.training.fl_proximal_mu
+    elif cfg_base.training.fl_strategy == "FedBN":
+        extra_kwargs["parameter_names"] = parameter_names
 
     # 4) Instantiate
     return cls(**common_kwargs, **extra_kwargs)
@@ -94,6 +99,7 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
         model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
                            weight_tensor, cfg_base.logging.selected_type == "wandb")
 
+        parameter_names = list(model.state_dict().keys())
         evaluate_fn = get_evaluate_fn(
             data,
             labels,
@@ -107,7 +113,8 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
         )
 
         return ServerAppComponents(
-            strategy=create_strategy(cfg_base, evaluate_fn),
+            strategy=create_strategy(
+                cfg_base, evaluate_fn, parameter_names),
             config=ServerConfig(num_rounds=cfg_base.fl.num_rounds)
         )
 

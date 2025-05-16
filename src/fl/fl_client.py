@@ -1,15 +1,17 @@
 import flwr as fl
+from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 import pytorch_lightning as pl
 import wandb
 import torch
 
 
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, data_module, model, logger, logger_type, num_local_epochs):
+    def __init__(self, data_module, model, logger, logger_type, num_local_epochs, skip_bn_layers=True):
         self.data_module = data_module
         self.model = model
         self.logger = logger
         self.logger_type = logger_type
+        self.skip_bn_layers = skip_bn_layers
 
         # Setup data module
         self.data_module.setup()
@@ -31,16 +33,42 @@ class FLClient(fl.client.NumPyClient):
             limit_train_batches=0,    # ← no train here
         )
 
-
     def get_parameters(self, config):
         return self.model.get_parameters()
         # return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
+    # def set_parameters(self, parameters):
+    #     # params_dict = zip(self.model.state_dict().keys(), parameters)
+    #     # state_dict = {k: torch.tensor(v) for k, v in params_dict}
+    #     # self.model.load_state_dict(state_dict, strict=True)
+    #     self.model.set_parameters(parameters)
+
     def set_parameters(self, parameters):
-        # params_dict = zip(self.model.state_dict().keys(), parameters)
-        # state_dict = {k: torch.tensor(v) for k, v in params_dict}
-        # self.model.load_state_dict(state_dict, strict=True)
-        self.model.set_parameters(parameters)
+
+        if self.skip_bn_layers:
+            # 1) Get a list of np.ndarray, no matter what form “parameters” came in
+            if hasattr(parameters, "tensors"):
+                # If it’s a flwr.common.Parameters proto
+                ndarrays = parameters_to_ndarrays(parameters)
+            else:
+                # Usually, for NumPyClient, Flower gives you a list of np.ndarray
+                ndarrays = parameters
+
+            # 2) Get your model’s state_dict names
+            state_dict = self.model.state_dict()
+            names = list(state_dict.keys())
+
+            # 3) Build a new state dict, skipping any “bn” entries so BN stays local
+            new_state = {}
+            for arr, name in zip(ndarrays, names):
+                if "bn" in name.lower():
+                    continue  # leave the client’s own BN stats untouched
+                new_state[name] = torch.tensor(arr)
+
+            # 4) Load only the non-BN parameters back into the model
+            self.model.load_state_dict(new_state, strict=False)
+        else:
+            self.model.set_parameters(parameters)
 
     def fit(self, parameters, config):
         # Set model parameters
@@ -87,7 +115,7 @@ class FLClient(fl.client.NumPyClient):
             self.model.server_round = server_round
         # Set model parameters
         self.set_parameters(parameters)
-        
+
         # Evaluate the model
         results = self.eval_trainer.validate(self.model, self.data_module)
 
@@ -98,7 +126,7 @@ class FLClient(fl.client.NumPyClient):
         num_examples = len(self.data_module.val_dataset)
 
         metrics = {"val_loss": loss, "val_accuracy": accuracy, "val_f1s": f1s}
-        
+
         if 'server_round' in config:
             if self.logger_type == "wandb":
                 metrics["round"] = server_round

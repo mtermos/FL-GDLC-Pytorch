@@ -20,5 +20,7 @@ focal_loss_reduction: 'sum'
 # focal_loss_reduction: 'mean'
 
 # fl_strategy: "FedAvg"
-fl_strategy: "FedProx"
+fl_strategy: "FedDyn"
+# fl_strategy: "FedBN"
+# fl_strategy: "FedProx"
 fl_proximal_mu: 0.75
