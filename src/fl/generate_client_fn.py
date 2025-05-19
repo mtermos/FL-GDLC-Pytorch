@@ -76,12 +76,14 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
         )
 
         return FLClient(
+            context=context,
             data_module=data_module,
             model=model,
             logger=logger,
             logger_type=logging_type,
             num_local_epochs=cfg_base.training.max_epochs,
-            skip_bn_layers=cfg_base.training.fl_strategy == "FedBN"
+            skip_bn_layers=cfg_base.training.fl_strategy == "FedBN",
+            fedNoAgg=cfg_base.training.fl_strategy == "FedNoAgg"
             # do_validate=do_validate
         ).to_client()
 

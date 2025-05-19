@@ -1,17 +1,20 @@
 import flwr as fl
-from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
+from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays, ArrayRecord, Array
 import pytorch_lightning as pl
 import wandb
 import torch
 
 
 class FLClient(fl.client.NumPyClient):
-    def __init__(self, data_module, model, logger, logger_type, num_local_epochs, skip_bn_layers=True):
+    def __init__(self, context, data_module, model, logger, logger_type, num_local_epochs, skip_bn_layers=True, fedNoAgg=False):
+
+        self.context = context
         self.data_module = data_module
         self.model = model
         self.logger = logger
         self.logger_type = logger_type
         self.skip_bn_layers = skip_bn_layers
+        self.fedNoAgg = fedNoAgg
 
         # Setup data module
         self.data_module.setup()
@@ -33,6 +36,13 @@ class FLClient(fl.client.NumPyClient):
             limit_train_batches=0,    # ← no train here
         )
 
+        # If we saved parameters before, reload them now
+        if self.fedNoAgg:
+            if "local_params" in self.context.state.array_records:
+                arr_rec: ArrayRecord = self.context.state.array_records["local_params"]
+                state_dict = arr_rec.to_torch_state_dict()
+                self.model.load_state_dict(state_dict, strict=False)
+
     def get_parameters(self, config):
         return self.model.get_parameters()
         # return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
@@ -44,6 +54,9 @@ class FLClient(fl.client.NumPyClient):
     #     self.model.set_parameters(parameters)
 
     def set_parameters(self, parameters):
+        if self.fedNoAgg:
+            print(f"==>> self.fedNoAgg: {self.fedNoAgg}")
+            return
 
         if self.skip_bn_layers:
             # 1) Get a list of np.ndarray, no matter what form “parameters” came in
@@ -57,17 +70,22 @@ class FLClient(fl.client.NumPyClient):
             # 2) Get your model’s state_dict names
             state_dict = self.model.state_dict()
             names = list(state_dict.keys())
+            print(f"==>> names: {names}")
 
             # 3) Build a new state dict, skipping any “bn” entries so BN stays local
             new_state = {}
             for arr, name in zip(ndarrays, names):
+                # if "model.network.bn1.weight" in name.lower():
+                #     print(f"==>> arr: {arr}")
                 if "bn" in name.lower():
                     continue  # leave the client’s own BN stats untouched
                 new_state[name] = torch.tensor(arr)
 
+            # return
             # 4) Load only the non-BN parameters back into the model
             self.model.load_state_dict(new_state, strict=False)
         else:
+            # return
             self.model.set_parameters(parameters)
 
     def fit(self, parameters, config):
@@ -102,6 +120,15 @@ class FLClient(fl.client.NumPyClient):
 
             if self.logger_type == "wandb":
                 self.logger.log_metrics(metrics, step=server_round)
+
+        if self.fedNoAgg:
+            sd = self.model.state_dict()
+            arrs = {name: Array(tensor.cpu().numpy())
+                    for name, tensor in sd.items()}
+
+            # 3) Store them under "local_params"
+            self.context.state.array_records["local_params"] = ArrayRecord(
+                arrs)
 
         return parameters_prime, num_examples, metrics
 

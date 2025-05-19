@@ -62,80 +62,103 @@ class FedDyn(FedAvg):
         return new_parameters, metrics
 
 
-class FedBN(FedAvg):
-    """FedBN strategy: only aggregate non-BN layers, keep BatchNorm locally."""
+# class FedBN(FedAvg):
+#     """FedBN strategy: only aggregate non-BN layers, keep BatchNorm locally."""
+
+#     def __init__(
+#         self,
+#         *,
+#         parameter_names: List[str],
+#         **kwargs,
+#     ) -> None:
+#         """
+#         Args:
+#             parameter_names: List of parameter keys in the exact order used
+#                              by flwr.common.parameters_to_ndarrays /
+#                              ndarrays_to_parameters.  E.g., list(model.state_dict().keys()).
+#         """
+#         super().__init__(**kwargs)
+#         self.parameter_names = parameter_names
+#         # Will hold the previous global parameters
+#         self.prev_global: Optional[List[np.ndarray]] = None
+#         self.bn_indices = [
+#             i for i, name in enumerate(self.parameter_names)
+#             if "bn" in name.lower()
+#         ]
+
+#     def configure_fit(self, server_round, parameters, client_manager):
+#         # parameters: a flwr.common.Parameters proto
+#         ndarrays = parameters_to_ndarrays(parameters)
+
+#         # Zero-out (or leave unchanged) the BN slots:
+#         for idx in self.bn_indices:
+#             # Option A: zero them (clients will keep their own running stats)
+#             ndarrays[idx] = np.zeros_like(ndarrays[idx])
+#             # Option B: leave them untouched so clients just keep what they had:
+#             # ndarrays[idx] = ndarrays[idx]  # no-op
+
+#         new_parameters = ndarrays_to_parameters(ndarrays)
+
+#         # The rest is identical to FedAvg
+#         fit_ins = super().configure_fit(server_round, new_parameters, client_manager)
+#         return fit_ins
+
+#     def aggregate_fit(
+#         self,
+#         rnd: int,
+#         results: List[Tuple[ClientProxy, FitRes]],
+#         failures: List[BaseException],
+#     ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+#         # 1) Run standard FedAvg aggregation
+#         aggregated_params, metrics = super().aggregate_fit(rnd, results, failures)
+#         if aggregated_params is None:
+#             return None, metrics
+
+#         # 2) Convert to numpy arrays
+#         current_ndarrays = parameters_to_ndarrays(aggregated_params)
+
+#         # 3) On first round, just take the aggregated
+#         if self.prev_global is None:
+#             new_ndarrays = current_ndarrays
+#         else:
+#             new_ndarrays = []
+#             # 4) For each parameter, if it's a BN layer, keep previous global
+#             for name, w_bar, w_prev in zip(
+#                 self.parameter_names, current_ndarrays, self.prev_global
+#             ):
+#                 if "bn" in name.lower():
+#                     # Keep previous BN weights/biases
+#                     new_ndarrays.append(w_prev)
+#                 else:
+#                     # Aggregate normally
+#                     new_ndarrays.append(w_bar)
+
+#         # 5) Store for next round
+#         self.prev_global = new_ndarrays
+
+#         # 6) Convert back and return
+#         new_parameters = ndarrays_to_parameters(new_ndarrays)
+#         return new_parameters, metrics
+
+
+class FedNoAgg(FedAvg):
+    """FedNoAgg strategy: Just for testing, will not aggregate model's weights. So basically, no federated learning, only local."""
 
     def __init__(
         self,
-        *,
-        parameter_names: List[str],
         **kwargs,
     ) -> None:
-        """
-        Args:
-            parameter_names: List of parameter keys in the exact order used
-                             by flwr.common.parameters_to_ndarrays / 
-                             ndarrays_to_parameters.  E.g., list(model.state_dict().keys()).
-        """
         super().__init__(**kwargs)
-        self.parameter_names = parameter_names
-        # Will hold the previous global parameters
-        self.prev_global: Optional[List[np.ndarray]] = None
-        self.bn_indices = [
-            i for i, name in enumerate(self.parameter_names)
-            if "bn" in name.lower()
-        ]
 
-    # def configure_fit(self, server_round, parameters, client_manager):
-    #     # parameters: a flwr.common.Parameters proto
-    #     ndarrays = parameters_to_ndarrays(parameters)
+    def configure_fit(self, server_round, parameters, client_manager):
+        self._last_params = parameters
+        return super().configure_fit(server_round, parameters, client_manager)
 
-    #     # Zero-out (or leave unchanged) the BN slots:
-    #     for idx in self.bn_indices:
-    #         # Option A: zero them (clients will keep their own running stats)
-    #         ndarrays[idx] = np.zeros_like(ndarrays[idx])
-    #         # Option B: leave them untouched so clients just keep what they had:
-    #         # ndarrays[idx] = ndarrays[idx]  # no-op
-
-    #     new_parameters = ndarrays_to_parameters(ndarrays)
-
-    #     # The rest is identical to FedAvg
-    #     fit_ins = super().configure_fit(server_round, new_parameters, client_manager)
-    #     return fit_ins
-
-    # def aggregate_fit(
-    #     self,
-    #     rnd: int,
-    #     results: List[Tuple[ClientProxy, FitRes]],
-    #     failures: List[BaseException],
-    # ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
-    #     # 1) Run standard FedAvg aggregation
-    #     aggregated_params, metrics = super().aggregate_fit(rnd, results, failures)
-    #     if aggregated_params is None:
-    #         return None, metrics
-
-    #     # 2) Convert to numpy arrays
-    #     current_ndarrays = parameters_to_ndarrays(aggregated_params)
-
-    #     # 3) On first round, just take the aggregated
-    #     if self.prev_global is None:
-    #         new_ndarrays = current_ndarrays
-    #     else:
-    #         new_ndarrays = []
-    #         # 4) For each parameter, if it's a BN layer, keep previous global
-    #         for name, w_bar, w_prev in zip(
-    #             self.parameter_names, current_ndarrays, self.prev_global
-    #         ):
-    #             if "bn" in name.lower():
-    #                 # Keep previous BN weights/biases
-    #                 new_ndarrays.append(w_prev)
-    #             else:
-    #                 # Aggregate normally
-    #                 new_ndarrays.append(w_bar)
-
-    #     # 5) Store for next round
-    #     self.prev_global = new_ndarrays
-
-    #     # 6) Convert back and return
-    #     new_parameters = ndarrays_to_parameters(new_ndarrays)
-    #     return new_parameters, metrics
+    def aggregate_fit(
+        self,
+        rnd: int,
+        results: List[Tuple[ClientProxy, FitRes]],
+        failures: List[BaseException],
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+        _, metrics = super().aggregate_fit(rnd, results, failures)
+        return self._last_params, metrics

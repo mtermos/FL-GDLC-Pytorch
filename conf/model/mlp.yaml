@@ -10,8 +10,8 @@ input_layer_norm: false
 
 dense:
   # units: [200, 80]
-  units: [400, 200, 80]
-  # units: [ 80 ]
+  # units: [400, 200, 80]
+  units: [ 80 ]
   activation: "leaky_relu"
   dropout: true
   dropout_rate: 0.2

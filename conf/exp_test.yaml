@@ -9,14 +9,14 @@ experiment:
   description: "An FL environment created using a tiny dataset, just to test codebase"
 
 fl:
-  num_rounds: 1
+  num_rounds: 2
   fraction_fit: 1.0
   fraction_evaluate: 1.0
-  num_clients: 5
-  min_fit_clients: 5
-  min_evaluate_clients: 5
-  min_available_clients: 5
-  clients_to_val: [ 0, 3 ]
+  num_clients: 2
+  min_fit_clients: 2
+  min_evaluate_clients: 2
+  min_available_clients: 2
+  clients_to_val: [ 0, 1 ]
 
 logging:
   selected_type: "tensorboard"
@@ -33,13 +33,13 @@ datasets:
 - name: "df1"
   raw: "df1.parquet"
   raw_type: "parquet"
-  num_clients: 3
+  num_clients: 1
   global_test_size: 0.2
 
 - name: "df2"
   raw: "df2.parquet"
   raw_type: "parquet"
-  num_clients: 2
+  num_clients: 1
   global_test_size: 0.2
 
 dataset_properties:
