@@ -72,7 +72,8 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             x_val=np.array(X_val),
             y_val=np.array(y_val),
             batch_size=cfg_base.training.batch_size,
-            do_validate=do_validate
+            do_validate=do_validate,
+            oversample=cfg_base.training.oversample,
         )
 
         return FLClient(
