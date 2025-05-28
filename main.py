@@ -22,7 +22,7 @@ warnings.filterwarnings(
 )
 
 
-def main(experiment, exp_type, models, num_cpus):
+def main(experiment, exp_type, models, num_cpus, run_dtime):
     print("==================================")
     print("==================================")
     print("==================================")
@@ -47,7 +47,6 @@ def main(experiment, exp_type, models, num_cpus):
     # for df in clients_data:
     #     print(df)
     # return
-    run_dtime = time.strftime("%Y%m%d-%H%M%S")
 
     # for cl in clients_labels:
     #     print(cl.value_counts().to_dict())
@@ -64,6 +63,7 @@ def main(experiment, exp_type, models, num_cpus):
             "input_layer_norm": models_cfg_mapping[model_name].input_layer_norm
         }
 
+        model_dtime = time.strftime("%Y%m%d-%H%M%S")
         for attribute_name, attribute_value in cfg_base.training.items():
             config[attribute_name] = attribute_value
 
@@ -76,10 +76,10 @@ def main(experiment, exp_type, models, num_cpus):
                 config[f"{model_name}_{layer}_{attribute_name}"] = attribute_value
 
         client_app = ClientApp(client_fn=generate_client_fn(
-            clients_data, clients_labels, models_cfg_mapping[model_name], cfg_base, exp_type, config, run_dtime, input_dim, labels_mapping))
+            clients_data, clients_labels, models_cfg_mapping[model_name], cfg_base, exp_type, config, model_dtime, input_dim, labels_mapping))
 
         server_app = ServerApp(server_fn=generate_server_fn(
-            test_data, test_labels, models_cfg_mapping[model_name], cfg_base, exp_type, config, run_dtime, input_dim, labels_mapping))
+            test_data, test_labels, models_cfg_mapping[model_name], cfg_base, exp_type, config, model_dtime, input_dim, labels_mapping))
 
         backend_config = {"client_resources": {"num_cpus": num_cpus}}
         if DEVICE.type == "cuda":
@@ -108,21 +108,23 @@ def main(experiment, exp_type, models, num_cpus):
 if __name__ == "__main__":
     # experiment = "exp_test"
     # experiment = "exp1_small"
-    experiment = "exp1_mini_high"
-    # experiment = "exp1"
+    # experiment = "exp1_mini_high"
+    experiment = "exp1"
+    # experiment = "exp2"
     exp_types = [
         "baseline",
         "selected_centralities",
-        "all_centralities",
+        # "all_centralities",
         "pca_gdlc"
     ]
 
     models = [
         # "mlp",
         "cnn",
-        "cnn_lstm"
+        # "cnn_lstm"
     ]
 
+    run_dtime = time.strftime("%Y%m%d-%H%M%S")
     num_cpus = os.cpu_count()
     for exp_type in exp_types:
-        main(experiment, exp_type, models, num_cpus)
+        main(experiment, exp_type, models, num_cpus, run_dtime)
