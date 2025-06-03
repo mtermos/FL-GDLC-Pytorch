@@ -1,6 +1,9 @@
 experiment_type: "selected_centralities"
 description: "Addition of selected centralities: degree, betweenness, and pagerank"
 
+# graph_type: "DiGraph"
+graph_type: "MultiDiGraph"
+
 centralities:
 - "degree"
 - "betweenness"

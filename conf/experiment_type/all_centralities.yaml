@@ -1,6 +1,9 @@
 experiment_type: "all_centralities"
 description: "Addition of all centralities"
 
+# graph_type: "DiGraph"
+graph_type: "MultiDiGraph"
+
 centralities:
 - "degree"
 - "local_degree"

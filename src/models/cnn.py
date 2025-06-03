@@ -3,6 +3,7 @@ import torch.nn as nn
 from collections import OrderedDict
 
 from src.models.activations import ACTIVATIONS
+from src.models.pooling_layers import pooling_layer
 from src.models.normalization_layers import ChannelLayerNorm
 
 
@@ -31,6 +32,13 @@ class CNN(nn.Module):
             )
             conv_layers.append(cnn)
             conv_layers.append(self.cnn_activation())
+            if model_cfg.cnn.pooling_type.startswith("adaptive"):
+                conv_layers.append(pooling_layer(
+                    model_cfg.cnn.pooling_type)(output_size=1))
+            else:
+                conv_layers.append(pooling_layer(
+                    model_cfg.cnn.pooling_type)(kernel_size=2))
+
             if model_cfg.cnn.batch_norm:
                 conv_layers.append(nn.BatchNorm1d(filter))
             if model_cfg.cnn.layer_norm:

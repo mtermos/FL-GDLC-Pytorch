@@ -27,12 +27,12 @@ def _process_dataset(df, timestamp_col, flow_id_col, class_col):
     return df
 
 
-def _process_partition_data(partition_df, src_ip_col, dst_ip_col, label_col, class_col, partition_name, cfg, processed_dir):
+def _process_partition_data(partition_df, src_ip_col, dst_ip_col, label_col, class_col, partition_name, cfg, processed_dir, graph_class):
     G = nx.from_pandas_edgelist(
         partition_df,
         source=src_ip_col,
         target=dst_ip_col,
-        create_using=nx.DiGraph()
+        create_using=graph_class
     )
 
     gdlc_features = None
@@ -60,6 +60,11 @@ def create_clients(base_cfg, experiment_type_cfg):
     processed_dir = os.path.join(
         dp.processed_dir, experiment_type_cfg.experiment_type)
     os.makedirs(processed_dir, exist_ok=True)
+
+    if experiment_type_cfg.graph_type == "DiGraph":
+        graph_class = nx.DiGraph()
+    elif experiment_type_cfg.graph_type == "MultiDiGraph":
+        graph_class = nx.MultiDiGraph()
 
     # Load and preprocess datasets
     classes_list = []
@@ -100,7 +105,7 @@ def create_clients(base_cfg, experiment_type_cfg):
             df[dp.class_col])
 
         G = nx.from_pandas_edgelist(
-            df, source=dp.src_ip_col, target=dp.dst_ip_col, create_using=nx.DiGraph())
+            df, source=dp.src_ip_col, target=dp.dst_ip_col, create_using=graph_class)
         calculate_df_properties(
             df, G, dp.label_col, dp.class_col, processed_dir, dataset.name)
 
@@ -112,7 +117,7 @@ def create_clients(base_cfg, experiment_type_cfg):
             client_name = f"client_{clients_count}"
             names.append(client_name)
             gdlc_features = _process_partition_data(
-                client_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, client_name, experiment_type_cfg, processed_dir)
+                client_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, client_name, experiment_type_cfg, processed_dir, graph_class=graph_class)
             gdlc_features_mapping[client_name] = gdlc_features
             df_mapping[client_name] = client_df
             clients_count += 1
@@ -120,7 +125,7 @@ def create_clients(base_cfg, experiment_type_cfg):
     # Process test data
     test_df = pd.concat(test_df_list)
     gdlc_features = _process_partition_data(
-        test_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, "test", experiment_type_cfg, processed_dir)
+        test_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, "test", experiment_type_cfg, processed_dir, graph_class=graph_class)
     gdlc_features_mapping["test"] = gdlc_features
 
     # Handle PCA specific processing

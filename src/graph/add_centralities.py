@@ -49,7 +49,7 @@ def timed_set_node_attribute(G, name, func, graph=None, verbose=False, **func_kw
 
 
 def add_centralities(df, new_path, graph_path, src_ip_col, dst_ip_col, cn_measures,
-                     network_features, G=None, create_using=nx.DiGraph(),
+                     network_features, G=None, create_using=nx.MultiDiGraph(),
                      communities=None, G1=None, part=None, verbose=False):
 
     if not network_features or not cn_measures:

@@ -1,5 +1,8 @@
 experiment_type: "baseline"
 description: "No centralities features are added"
 
+# graph_type: "DiGraph"
+graph_type: "MultiDiGraph"
+
 centralities: []
 network_features: []
