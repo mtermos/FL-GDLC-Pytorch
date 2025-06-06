@@ -2,7 +2,7 @@ import numpy as np
 from typing import List, Tuple, Optional, Dict
 
 import flwr as fl
-from flwr.server.strategy import FedAvg
+from flwr.server.strategy import FedAvg, FedProx
 from flwr.common import (
     Parameters,
     Scalar,
@@ -15,7 +15,49 @@ from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 from flwr.common.typing import FitRes
 
 
-class FedDyn(FedAvg):
+class FedAvgLogger(FedAvg):
+    """FedAvg strategy that logs aggregated metrics each round."""
+
+    def __init__(self, *, logger=None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.logger = logger
+
+    def aggregate_fit(
+        self,
+        rnd: int,
+        results: List[Tuple[ClientProxy, FitRes]],
+        failures: List[BaseException],
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+        aggregated_params, metrics = super().aggregate_fit(rnd, results, failures)
+        if self.logger is not None and metrics:
+            server_round = float(rnd)
+            metrics["round"] = server_round
+            self.logger.log_metrics(metrics, step=server_round)
+        return aggregated_params, metrics
+
+
+class FedProxLogger(FedProx):
+    """FedProx strategy that logs aggregated metrics each round."""
+
+    def __init__(self, *, logger=None, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.logger = logger
+
+    def aggregate_fit(
+        self,
+        rnd: int,
+        results: List[Tuple[ClientProxy, FitRes]],
+        failures: List[BaseException],
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+        aggregated_params, metrics = super().aggregate_fit(rnd, results, failures)
+        if self.logger is not None and metrics:
+            server_round = float(rnd)
+            metrics["round"] = server_round
+            self.logger.log_metrics(metrics, step=server_round)
+        return aggregated_params, metrics
+
+
+class FedDyn(FedAvgLogger):
     """FedDyn strategy (A Dynamic Regularization for Federated Learning)."""
 
     def __init__(

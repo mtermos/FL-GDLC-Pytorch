@@ -1,10 +1,11 @@
 import torch
+import time
 from flwr.server import ServerAppComponents, ServerConfig
-from flwr.server.strategy import FedAvg, FedProx
 from flwr.common import Context
 import numpy as np
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
-from src.fl.strategies import FedDyn, FedNoAgg
+from src.fl.strategies import FedDyn, FedNoAgg, FedAvgLogger, FedProxLogger
 from src.fl.get_evaluate_fn import get_evaluate_fn
 from src.fl.get_on_fit_config import get_on_fit_config
 from src.models.init_model import init_model
@@ -17,8 +18,8 @@ def weighted_fit_agg(
     """Aggregate *training* metrics across clients, weighted by # of train examples."""
     total = sum(n for n, _ in metrics)
     return {
-        "train_loss": sum(n * m["train_loss"] for n, m in metrics) / total,
-        "train_f1_score": sum(n * m["train_f1_score"] for n, m in metrics) / total,
+        "train_loss_avg": sum(n * m["train_loss"] for n, m in metrics) / total,
+        "train_f1_score_avg": sum(n * m["train_f1_score"] for n, m in metrics) / total,
     }
 
 
@@ -47,14 +48,14 @@ def get_on_evaluate_config():
     return evaluate_config_fn
 
 
-def create_strategy(cfg_base, evaluate_fn, parameter_names, model):
+def create_strategy(cfg_base, evaluate_fn, parameter_names, model, logger):
     # 1) Map names to classes
     strategy_classes = {
-        "FedAvg": FedAvg,
-        "FedProx": FedProx,
+        "FedAvg": FedAvgLogger,
+        "FedProx": FedProxLogger,
         "FedDyn": FedDyn,
-        "FedBN": FedAvg,
-        "FedNoAgg": FedAvg,
+        "FedBN": FedAvgLogger,
+        "FedNoAgg": FedNoAgg,
         # "FedNoAgg": FedNoAgg,
     }
     cls = strategy_classes.get(cfg_base.training.fl_strategy)
@@ -74,6 +75,7 @@ def create_strategy(cfg_base, evaluate_fn, parameter_names, model):
         evaluate_fn=evaluate_fn,
         fit_metrics_aggregation_fn=weighted_fit_agg,
         evaluate_metrics_aggregation_fn=weighted_eval_agg,
+        logger=logger,
     )
 
     # 3) Add any strategy-specific args
@@ -84,6 +86,11 @@ def create_strategy(cfg_base, evaluate_fn, parameter_names, model):
     #     extra_kwargs["parameter_names"] = parameter_names
 
     # 4) Instantiate
+    # strat =
+    # aggregated_params, metrics = super().aggregate_fit(rnd, results, failures)
+    # if logger:
+    #     logger.log_metrics(metrics, step=rnd)
+
     return cls(**common_kwargs, **extra_kwargs)
 
 
@@ -91,6 +98,19 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
     def server_fn(context: Context):
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        logging_cfg = cfg_base.logging[cfg_base.logging.selected_type]
+        if cfg_base.logging.selected_type == "wandb":
+            logger = WandbLogger(
+                project=logging_cfg.project,
+                config=config_to_add_to_logger,
+                version=f"{run_dtime}_{model_cfg.model.name}_test",
+                name=f"{exp_type}_{model_cfg.model.name}_test",
+                save_dir=f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{exp_type}_{model_cfg.model.name}_test"
+            )
+        else:
+            logger = TensorBoardLogger(
+                f"{logging_cfg.save_dir}/{cfg_base.experiment.name}/{time.strftime('%Y%m%d-%H%M%S')}/{exp_type}_{model_cfg.model.name}/test")
 
         if cfg_base.training.use_weighted_loss:
             weight_tensor = compute_class_weights(labels, np.array(list(labels_mapping.keys(
@@ -107,16 +127,13 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             labels,
             cfg_base.training,
             model,
-            model_cfg.model.name,
+            logger,
             cfg_base,
-            exp_type,
-            config_to_add_to_logger,
-            run_dtime
         )
 
         return ServerAppComponents(
             strategy=create_strategy(
-                cfg_base, evaluate_fn, parameter_names, model),
+                cfg_base, evaluate_fn, parameter_names, model, logger),
             config=ServerConfig(num_rounds=cfg_base.fl.num_rounds)
         )
 
