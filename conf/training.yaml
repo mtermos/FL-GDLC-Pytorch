@@ -1,12 +1,12 @@
 multi_class: true
-batch_size: 256
+batch_size: 1024
 max_epochs: 1
 
 optimizer: "adam"
-learning_rate: 0.001
+learning_rate: 0.00001
 lr_decay: true
-lr_decay_rate: 0.05
-weight_decay: 0.001
+lr_decay_rate: 0.1
+weight_decay: 0.01
 
 # use_weighted_loss: true
 use_weighted_loss: false

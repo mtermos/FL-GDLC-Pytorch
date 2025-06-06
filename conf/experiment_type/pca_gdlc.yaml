@@ -1,8 +1,8 @@
 experiment_type: "pca_gdlc"
 description: "Addition of PCA columns representing the GDLC features"
 
-# graph_type: "DiGraph"
-graph_type: "MultiDiGraph"
+graph_type: "DiGraph"
+# graph_type: "MultiDiGraph"
 
 num_pca_components: 3
 

@@ -5,45 +5,63 @@ defaults:
 random_seed: 42
 
 experiment:
-  name: "exp1"
-  description: "An FL environment created using the cic_ton_iot and the cic_ids_2017 datasets"
+  name: "exp4"
+  description: "An FL environment created using the cic_ton_iot_1m, cic_bot_iot_1m, and cic_ids_2017_1m datasets"
 
 fl:
   num_rounds: 20
   fraction_fit: 1.0
   fraction_evaluate: 1.0
-  num_clients: 8
-  min_fit_clients: 8
-  min_evaluate_clients: 8
-  min_available_clients: 8
-  clients_to_val: [ 0, 5 ]
+  num_clients: 5
+  min_fit_clients: 5
+  min_evaluate_clients: 5
+  min_available_clients: 5
+  clients_to_val: [ 0, 1, 2, 3, 4 ]
 
 logging:
   selected_type: "wandb"
   wandb:
-    project: "FL-GDLC-exp1"
+    project: "FL-GDLC-exp4"
     entity: "mtermos-cesi"
-    tags: [ "exp1", "cic_ton_iot", "cic_ids_2017" ]
+    tags: [ "exp4", "cic_ton_iot_1m", "cic_bot_iot_1m", "cic_ids_2017_1m", "cic_unsw_1m", "cic_ddos_2019_1m" ]
     save_dir: "logs/wandb_runs"
   tensorboard:
-    project: "FL-GDLC-exp1"
+    project: "FL-GDLC-exp4"
     save_dir: "logs/tensorboard_runs"
 
 datasets:
-- name: "cic_ton_iot"
-  raw: "cic_ton_iot.parquet"
+- name: "cic_bot_iot_1m"
+  raw: "cic_bot_iot_1m.parquet"
   raw_type: "parquet"
-  num_clients: 5
+  num_clients: 1
   global_test_size: 0.1
 
-- name: "cic_ids_2017"
-  raw: "cic_ids_2017.parquet"
+- name: "cic_ton_iot_1m"
+  raw: "cic_ton_iot_1m.parquet"
   raw_type: "parquet"
-  num_clients: 3
+  num_clients: 1
+  global_test_size: 0.1
+
+- name: "cic_ids_2017_1m"
+  raw: "cic_ids_2017_1m.parquet"
+  raw_type: "parquet"
+  num_clients: 1
+  global_test_size: 0.1
+
+- name: "cic_unsw_1m"
+  raw: "cic_unsw_1m.parquet"
+  raw_type: "parquet"
+  num_clients: 1
+  global_test_size: 0.1
+
+- name: "cic_ddos_2019_1m"
+  raw: "cic_ddos_2019_1m.parquet"
+  raw_type: "parquet"
+  num_clients: 1
   global_test_size: 0.1
 
 dataset_properties:
-  processed_dir: "datasets/exp1"
+  processed_dir: "datasets/exp4"
   src_ip_col: "Src IP"
   dst_ip_col: "Dst IP"
   timestamp_col: "Timestamp"
