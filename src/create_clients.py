@@ -129,21 +129,37 @@ def create_clients(base_cfg, experiment_type_cfg):
     gdlc_features_mapping["test"] = gdlc_features
 
     # Handle PCA specific processing
-    if experiment_type_cfg.experiment_type == "pca_gdlc":
+    if experiment_type_cfg.experiment_type == "pca_gdlc" or experiment_type_cfg.experiment_type == "pca_baseline":
         names.append("test")
         df_mapping["test"] = test_df
 
-        gdlc_dfs_dict = {key: value[gdlc_features_mapping[key]]
-                         for key, value in df_mapping.items()}
+        dfs_dict_pca = {}
+        columns_for_pca = {}
+        for key, value in df_mapping.items():
+            all_columns = list(value.columns)
+            if experiment_type_cfg.experiment_type == "pca_gdlc":
+                if experiment_type_cfg.transform_all_columns:
+                    all_columns += gdlc_features_mapping[key]
+                else:
+                    all_columns = gdlc_features_mapping[key]
+
+            columns_for_pca[key] = list({
+                x for x in all_columns if x not in dp.drop_columns + dp.weak_columns})
+            dfs_dict_pca[key] = value[columns_for_pca[key]]
+
+        # dfs_dict_pca = {key: value[]
+        #                  for key, value in df_mapping.items()}
+
         pca_dfs_dict, pca_results, pca_columns = process_clients_with_grouped_pca_rmse(
-            dfs_dict=gdlc_dfs_dict,
+            dfs_dict=dfs_dict_pca,
             n_components=experiment_type_cfg.num_pca_components
         )
 
         for name, df in pca_dfs_dict.items():
+            # df_mapping[name] = df
             df_mapping[name] = pd.concat([
                 df_mapping[name].drop(
-                    columns=gdlc_features_mapping[name]),
+                    columns=columns_for_pca[name]),
                 df
             ], axis=1)
 

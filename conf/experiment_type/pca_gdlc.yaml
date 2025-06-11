@@ -4,6 +4,8 @@ description: "Addition of PCA columns representing the GDLC features"
 graph_type: "DiGraph"
 # graph_type: "MultiDiGraph"
 
+# transform_all_columns: True
+transform_all_columns: False
 num_pca_components: 3
 
 additional_columns:

@@ -18,6 +18,10 @@ def mock_data(monkeypatch):
         "flow_id": list(range(20)),
         "f1": [random.randint(0, 100) for _ in range(20)],
         "f2": [random.randint(0, 100) for _ in range(20)],
+        "f3": [random.randint(0, 100) for _ in range(20)],
+        "f4": [random.randint(0, 100) for _ in range(20)],
+        "f5": [random.randint(0, 100) for _ in range(20)],
+        "f6": [random.randint(0, 100) for _ in range(20)],
         "class": ["Benign"] * 6 + ["bot"] * 8 + ["dos"] * 6,
         "label": [0] * 6 + [1] * 14
     })
@@ -28,6 +32,10 @@ def mock_data(monkeypatch):
         "flow_id": list(range(20)),
         "f1": [random.randint(0, 100) for _ in range(20)],
         "f2": [random.randint(0, 100) for _ in range(20)],
+        "f3": [random.randint(0, 100) for _ in range(20)],
+        "f4": [random.randint(0, 100) for _ in range(20)],
+        "f5": [random.randint(0, 100) for _ in range(20)],
+        "f6": [random.randint(0, 100) for _ in range(20)],
         "class": ["Benign"] * 10 + ["bot"] * 10,
         "label": [0] * 10 + [1] * 10
     })
@@ -116,7 +124,9 @@ def mock_base_cfg():
                 "src_ip",
                 "dst_ip",
                 "timestamp",
-                "class"
+                "label",
+                "class",
+                "class_num",
             ],
             "weak_columns": [
                 "f2"
@@ -143,6 +153,11 @@ def mock_all_centralities_cfg():
 @pytest.fixture
 def mock_pca_gdlc_cfg():
     return load_config("experiment_type/pca_gdlc")
+
+
+@pytest.fixture
+def mock_pca_baseline_cfg():
+    return load_config("experiment_type/pca_baseline")
 
 
 @pytest.fixture

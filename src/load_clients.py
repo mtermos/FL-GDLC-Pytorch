@@ -39,11 +39,11 @@ def load_clients(base_cfg, cfg):
     clients_labels = []
     for client in clients_data:
         clients_labels.append(client[label_col])
-        client.drop(columns=dp.drop_columns + [dp.class_col, dp.class_num_col, dp.label_col] + dp.weak_columns,
+        client.drop(columns=dp.drop_columns + dp.weak_columns,
                     inplace=True, errors='ignore')
 
     test_labels = test_data[label_col]
-    test_data.drop(columns=dp.drop_columns + [dp.class_col, dp.class_num_col, dp.label_col] + dp.weak_columns,
+    test_data.drop(columns=dp.drop_columns + dp.weak_columns,
                    inplace=True, errors='ignore')
 
     input_dim = clients_data[0].shape[1]

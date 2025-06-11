@@ -1,0 +1,17 @@
+experiment_type: "pca_baseline"
+description: "Addition of PCA columns representing network flow features"
+
+graph_type: "DiGraph"
+# graph_type: "MultiDiGraph"
+
+transform_all_columns: True
+num_pca_components: 3
+
+centralities: []
+network_features: []
+
+additional_columns:
+  pca_columns:
+  - "global_pca_1"
+  - "global_pca_2"
+  - "global_pca_3"
