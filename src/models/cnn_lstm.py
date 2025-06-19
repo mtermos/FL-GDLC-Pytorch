@@ -28,12 +28,16 @@ class CNNLSTM(nn.Module):
             )
             conv_layers.append(cnn)
             conv_layers.append(self.cnn_activation())
-            if model_cfg.cnn.pooling_type.startswith("adaptive"):
-                conv_layers.append(pooling_layer(
-                    model_cfg.cnn.pooling_type)(output_size=1))
+
+            if i == len(model_cfg.cnn.filters) - 1:
+                pooling_type = model_cfg.cnn.last_layer_pooling_type
             else:
-                conv_layers.append(pooling_layer(
-                    model_cfg.cnn.pooling_type)(kernel_size=2))
+                pooling_type = model_cfg.cnn.pooling_type
+
+            if pooling_type.startswith("adaptive"):
+                conv_layers.append(pooling_layer(pooling_type)(output_size=1))
+            else:
+                conv_layers.append(pooling_layer(pooling_type)(kernel_size=2))
 
             if model_cfg.cnn.batch_norm:
                 conv_layers.append(nn.BatchNorm1d(filter))
@@ -48,6 +52,7 @@ class CNNLSTM(nn.Module):
         self.lstm_layers = nn.ModuleList()
         self.lstm_activations = nn.ModuleList()
         self.lstm_normalization = nn.ModuleList()
+        self.lstm_drop_out = nn.ModuleList()
         lstm_input_size = filter
 
         for hidden_dim in model_cfg.lstm.hidden_size:
@@ -63,6 +68,10 @@ class CNNLSTM(nn.Module):
             )
             if self.lstm_activation:
                 self.lstm_activations.append(self.lstm_activation())
+
+            if model_cfg.lstm.dropout:
+                self.lstm_drop_out.append(
+                    nn.Dropout(model_cfg.lstm.dropout_rate))
 
             self.lstm_normalization.append(
                 SequenceNorm1d(
@@ -107,6 +116,9 @@ class CNNLSTM(nn.Module):
 
             if i < len(self.lstm_activations):
                 x = self.lstm_activations[i](x)
+
+            if i < len(self.lstm_drop_out):
+                x = self.lstm_drop_out[i](x)
 
             if len(self.lstm_normalization) > i:
                 x = self.lstm_normalization[i](x)

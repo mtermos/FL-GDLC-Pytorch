@@ -53,5 +53,5 @@ dataset_properties:
   class_col: "class"
   class_num_col: "class_num"
   val_size: 0.2
-  drop_columns: [ "flow_id", "src_ip", "dst_ip", "timestamp", "class" ]
+  drop_columns: [ "flow_id", "src_ip", "dst_ip", "timestamp", "class", "class_num", "label" ]
   weak_columns: [ "f2" ]

@@ -9,7 +9,7 @@ experiment:
   description: "An FL environment created using a portion of the cic_ids_2017 dataset. Meant for quick testing."
 
 fl:
-  num_rounds: 2
+  num_rounds: 3
   fraction_fit: 1.0
   fraction_evaluate: 1.0
   num_clients: 3

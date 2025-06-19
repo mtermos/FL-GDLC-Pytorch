@@ -32,12 +32,16 @@ class CNN(nn.Module):
             )
             conv_layers.append(cnn)
             conv_layers.append(self.cnn_activation())
-            if model_cfg.cnn.pooling_type.startswith("adaptive"):
-                conv_layers.append(pooling_layer(
-                    model_cfg.cnn.pooling_type)(output_size=1))
+
+            if i == len(model_cfg.cnn.filters) - 1:
+                pooling_type = model_cfg.cnn.last_layer_pooling_type
             else:
-                conv_layers.append(pooling_layer(
-                    model_cfg.cnn.pooling_type)(kernel_size=2))
+                pooling_type = model_cfg.cnn.pooling_type
+
+            if pooling_type.startswith("adaptive"):
+                conv_layers.append(pooling_layer(pooling_type)(output_size=1))
+            else:
+                conv_layers.append(pooling_layer(pooling_type)(kernel_size=2))
 
             if model_cfg.cnn.batch_norm:
                 conv_layers.append(nn.BatchNorm1d(filter))

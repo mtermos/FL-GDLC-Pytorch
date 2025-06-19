@@ -12,6 +12,7 @@ from src.data.data_module import ClientTrainDataModule
 from src.fl.fl_client import FLClient
 from src.models.init_model import init_model
 from src.utils import compute_class_weights
+from src.models.model_utils import check_if_sequence_model
 
 
 def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_add_to_logger, run_dtime, input_dim, labels_mapping):
@@ -65,16 +66,29 @@ def generate_client_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
         model = init_model(cfg_base.training, model_cfg, input_dim, labels_mapping,
                            weight_tensor, logging_type == "wandb")
 
-        # Create data module
-        data_module = ClientTrainDataModule(
-            x_train=np.array(X_train),
-            y_train=np.array(y_train),
-            x_val=np.array(X_val),
-            y_val=np.array(y_val),
-            batch_size=cfg_base.training.batch_size,
-            do_validate=do_validate,
-            oversample=cfg_base.training.oversample,
-        )
+        if check_if_sequence_model(model_cfg):
+            data_module = ClientTrainDataModule(
+                x_train=np.array(X_train),
+                y_train=np.array(y_train),
+                x_val=np.array(X_val),
+                y_val=np.array(y_val),
+                batch_size=cfg_base.training.batch_size,
+                do_validate=do_validate,
+                oversample=cfg_base.training.oversample,
+                use_sequences=True,
+                sequence_length=model_cfg.sequence_length
+            )
+        else:
+            # Create data module
+            data_module = ClientTrainDataModule(
+                x_train=np.array(X_train),
+                y_train=np.array(y_train),
+                x_val=np.array(X_val),
+                y_val=np.array(y_val),
+                batch_size=cfg_base.training.batch_size,
+                do_validate=do_validate,
+                oversample=cfg_base.training.oversample,
+            )
 
         return FLClient(
             context=context,

@@ -38,10 +38,12 @@ def load_clients(base_cfg, cfg):
 
     clients_labels = []
     for client in clients_data:
+        client.sort_values(by=dp.timestamp_col, inplace=True)
         clients_labels.append(client[label_col])
         client.drop(columns=dp.drop_columns + dp.weak_columns,
                     inplace=True, errors='ignore')
 
+    test_data.sort_values(by=dp.timestamp_col, inplace=True)
     test_labels = test_data[label_col]
     test_data.drop(columns=dp.drop_columns + dp.weak_columns,
                    inplace=True, errors='ignore')

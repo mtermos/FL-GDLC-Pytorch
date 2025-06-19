@@ -1,29 +1,15 @@
-# CNN-LSTM model configuration
+# LSTM model configuration
 model:
-  name: "cnn_lstm"
-  type: "cnn_lstm"
+  name: "lstm"
+  type: "lstm"
 
 layers:
-- cnn
 - lstm
 - dense
 
 input_layer_norm: False
 
-# CNN layers
-cnn:
-  filters: [ 80, 80 ]
-  # kernel_sizes: [ 3, 3 ]
-  kernel_sizes: [ 2, 2 ]
-  # kernel_sizes: [ 5, 5 ]
-  # activation: "leaky_relu"
-  activation: "gelu"
-  pooling_type: "max"
-  last_layer_pooling_type: "max"
-  dropout: True
-  dropout_rate: 0.5
-  batch_norm: False
-  layer_norm: True
+sequence_length: 3
 
 # LSTM layers
 lstm:
@@ -34,6 +20,7 @@ lstm:
   dropout_rate: 0.3
   batch_norm: False
   layer_norm: True
+  bidirectional: False
 
 # Dense layers
 dense:

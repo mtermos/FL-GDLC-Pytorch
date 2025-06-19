@@ -10,6 +10,7 @@ from src.fl.get_evaluate_fn import get_evaluate_fn
 from src.fl.get_on_fit_config import get_on_fit_config
 from src.models.init_model import init_model
 from src.utils import compute_class_weights
+from src.models.model_utils import check_if_sequence_model
 
 
 def weighted_fit_agg(
@@ -129,6 +130,8 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             model,
             logger,
             cfg_base,
+            check_if_sequence_model(model_cfg),
+            model_cfg.sequence_length
         )
 
         return ServerAppComponents(

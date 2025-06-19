@@ -7,14 +7,16 @@ from src.models.init_model import init_model
 from src.data.data_module import ServerEvalDataModule
 
 
-def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, logger, cfg_base):
+def get_evaluate_fn(x_test_server, y_test_server, training_cfg, eval_model, logger, cfg_base, use_sequences, sequence_length):
     def evaluate_fn(server_round: int, parameters, config):
 
         # Create data module for evaluation
         data_module = ServerEvalDataModule(
             x_test=np.array(x_test_server),
             y_test=np.array(y_test_server),
-            batch_size=training_cfg.batch_size
+            batch_size=training_cfg.batch_size,
+            use_sequences=use_sequences,
+            sequence_length=sequence_length
         )
 
         eval_model.set_parameters(parameters)
