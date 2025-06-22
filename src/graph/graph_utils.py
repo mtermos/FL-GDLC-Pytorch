@@ -84,9 +84,6 @@ def detect_communities(G, G1=None, part=None):
       - the igraph Graph G1,
       - the membership partition object `part`.
     """
-    # part = nx.community.louvain_communities(G, seed=123)
-    # communities = [list(comm) for comm in part]
-    # return communities, None, None
     # Convert to igraph if not already done
     if G1 is None:
         G1 = ig.Graph.from_networkx(G)

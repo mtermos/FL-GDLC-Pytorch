@@ -7,12 +7,7 @@ graph_type: "DiGraph"
 
 transform_all_columns: True
 num_pca_components: 3
+pca_version: 2
 
 centralities: []
 network_features: []
-
-additional_columns:
-  pca_columns:
-  - "global_pca_1"
-  - "global_pca_2"
-  - "global_pca_3"

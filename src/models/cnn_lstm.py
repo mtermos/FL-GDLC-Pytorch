@@ -63,7 +63,7 @@ class CNNLSTM(nn.Module):
                     num_layers=1,
                     batch_first=True,
                     dropout=model_cfg.lstm.dropout_rate if model_cfg.lstm.dropout else 0,
-                    bidirectional=False
+                    bidirectional=model_cfg.lstm.bidirectional
                 )
             )
             if self.lstm_activation:
@@ -75,18 +75,21 @@ class CNNLSTM(nn.Module):
 
             self.lstm_normalization.append(
                 SequenceNorm1d(
-                    dim=hidden_dim,
+                    dim=hidden_dim *
+                    (2 if model_cfg.lstm.bidirectional else 1),
                     use_batch_norm=model_cfg.lstm.batch_norm,
                     use_layer_norm=model_cfg.lstm.layer_norm,
                     # e.g. momentum=0.1, eps=1e-5 if you want custom BN args
                 )
             )
 
-            lstm_input_size = hidden_dim
+            lstm_input_size = hidden_dim * \
+                (2 if model_cfg.lstm.bidirectional else 1)
 
         # after LSTM, we'll take the last hidden‐state, so our
         # `input_dim` for the dense layers is just the last hidden_dim
-        input_dim = model_cfg.lstm.hidden_size[-1]
+        input_dim = model_cfg.lstm.hidden_size[-1] * \
+            (2 if model_cfg.lstm.bidirectional else 1)
 
         fc_layers = []
         for hidden_dim in model_cfg.dense.units:

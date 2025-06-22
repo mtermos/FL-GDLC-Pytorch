@@ -18,7 +18,12 @@ cnn:
   # activation: "relu"
   # activation: "leaky_relu"
   activation: "gelu"
-  pooling_type: "max"
+  # pooling_type: "max"
+  pooling_type: "avg"
+  # last_layer_pooling_type: "adaptive_avg"
+  # last_layer_pooling_type: "adaptive_max"
+  # last_layer_pooling_type: "max"
+  last_layer_pooling_type: "avg"
   dropout: true
   dropout_rate: 0.5
   batch_norm: false
@@ -28,7 +33,7 @@ cnn:
 dense:
   # units: [ 200 ]
   # units: [ 200, 100 ]
-  units: [ 200, 100, 50 ]
+  units: [ 200, 100, 80 ]
   # activation: "relu"
   # activation: "leaky_relu"
   activation: "gelu"

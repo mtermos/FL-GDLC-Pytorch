@@ -13,7 +13,7 @@ sequence_length: 3
 
 # LSTM layers
 lstm:
-  hidden_size: [ 80 ]
+  hidden_size: [ 80, 80 ]
   # activation: "leaky_relu"
   activation: "gelu"
   dropout: True

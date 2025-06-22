@@ -32,7 +32,8 @@ def compute_graph_properties(G, name=None, folder_path=None):
     degrees = [degree for _, degree in G.degree()]
     properties["max_degree"] = max(degrees)
     properties["avg_degree"] = sum(degrees) / len(degrees)
-    properties["transitivity"] = nx.transitivity(G)
+    if not isinstance(G, (nx.MultiGraph, nx.MultiDiGraph)):
+        properties["transitivity"] = nx.transitivity(G)
     properties["density"] = nx.density(G)
 
     node_to_community = {}

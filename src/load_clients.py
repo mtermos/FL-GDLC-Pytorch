@@ -48,6 +48,8 @@ def load_clients(base_cfg, cfg):
     test_data.drop(columns=dp.drop_columns + dp.weak_columns,
                    inplace=True, errors='ignore')
 
+    print(f"==>> clients_data[0]: {clients_data[0].columns}")
+    print(f"==>> test_data: {test_data.columns}")
     input_dim = clients_data[0].shape[1]
 
     return (

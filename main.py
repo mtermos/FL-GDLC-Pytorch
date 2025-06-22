@@ -4,6 +4,7 @@ import torch
 from flwr.simulation import run_simulation
 from flwr.client import ClientApp
 from flwr.server import ServerApp
+import pytorch_lightning as pl
 import warnings
 import wandb
 import ray
@@ -31,6 +32,8 @@ def main(experiment, exp_type, models, num_cpus, run_dtime):
     # os.environ["RAY_DEDUP_LOGS"] = "0"
     DEVICE = torch.device("cpu")
 
+    pl.seed_everything(cfg_base.random_seed)
+
     cfg_base = load_config(experiment)
     cfg_exp_type = load_config(f"experiment_type/{exp_type}")
 
@@ -43,14 +46,6 @@ def main(experiment, exp_type, models, num_cpus, run_dtime):
     # loading clients data
     clients_data, clients_labels, test_data, test_labels, input_dim, labels_mapping = load_clients(
         cfg_base, cfg_exp_type)
-
-    # for df in clients_data:
-    #     print(df)
-    # return
-
-    # for cl in clients_labels:
-    #     print(cl.value_counts().to_dict())
-    # return
 
     for model_name in models:
 
@@ -65,6 +60,9 @@ def main(experiment, exp_type, models, num_cpus, run_dtime):
 
         model_dtime = time.strftime("%Y%m%d-%H%M%S")
         for attribute_name, attribute_value in cfg_base.training.items():
+            config[attribute_name] = attribute_value
+
+        for attribute_name, attribute_value in cfg_exp_type.items():
             config[attribute_name] = attribute_value
 
         for attribute_name, attribute_value in cfg_base.fl.items():
@@ -124,7 +122,9 @@ if __name__ == "__main__":
     models = [
         # "mlp",
         # "cnn",
-        "cnn_lstm"
+        "cnn_lstm",
+        # "gru",
+        # "lstm",
     ]
 
     run_dtime = time.strftime("%Y%m%d-%H%M%S")

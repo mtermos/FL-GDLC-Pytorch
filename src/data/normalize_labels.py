@@ -180,8 +180,6 @@ LABEL_MAPPING_CLEANED_NAMES = {
     "Heartbleed": "heartbleed"
 }
 
-
-
 CATEGORY_TO_CLASSES = {
     "benign": [
         "BENIGN",
@@ -194,8 +192,6 @@ CATEGORY_TO_CLASSES = {
         "scanning",
         "Reconnaissance",
         "reconnaissance",
-        "Portmap",
-        "NetBIOS",          # treat probing for NetBIOS as reconnaissance
     ],
     "dos": [
         "dos",
@@ -244,6 +240,10 @@ CATEGORY_TO_CLASSES = {
         "tftp",             # TFTP‐amplification
         "LDAP",             # LDAP‐amplification
         "ldap",             # LDAP‐amplification
+        "netbios",
+        "NetBIOS",          # treat probing for NetBIOS as reconnaissance
+        "Portmap",
+        "portmap",
     ],
     "password": [
         "FTP-Patator",
@@ -292,20 +292,19 @@ LABEL_MAPPING_10CATS = {
 }
 
 
-
 def normalize_labels(df, class_col):
     # 1. Grab all unique values from your class column
     unique_labels = set(df[class_col].unique())
-    
+
     # 2. Grab all the keys that your mapping already covers
     mapped_keys = set(LABEL_MAPPING_GROUPED.keys())
-    
+
     # 3. Any label that isn’t in mapped_keys will end up as "other"
     missing_labels = unique_labels - mapped_keys
-    
+
     print("Labels not yet in LABEL_MAPPING_GROUPED:")
     print(sorted(missing_labels))
-    
+
     # Map every label, and send anything unmapped to 'other'
     return (
         df[class_col]
@@ -313,4 +312,3 @@ def normalize_labels(df, class_col):
         .map(LABEL_MAPPING_10CATS)           # map known → unified
         .fillna("other")              # everything else → other
     )
-

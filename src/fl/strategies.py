@@ -183,7 +183,7 @@ class FedDyn(FedAvgLogger):
 #         return new_parameters, metrics
 
 
-class FedNoAgg(FedAvg):
+class FedNoAgg(FedAvgLogger):
     """FedNoAgg strategy: Just for testing, will not aggregate model's weights. So basically, no federated learning, only local."""
 
     def __init__(

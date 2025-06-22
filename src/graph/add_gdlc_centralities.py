@@ -18,9 +18,7 @@ def get_gdlc_type(G):
     graph_properties = compute_graph_properties(G)
 
     density = graph_properties["density"]
-    transitivity = graph_properties["transitivity"]
     mixing_param = graph_properties["mixing_parameter"]
-
 
     properties = {
         "density": density,

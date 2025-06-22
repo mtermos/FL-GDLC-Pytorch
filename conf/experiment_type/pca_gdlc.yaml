@@ -8,9 +8,4 @@ graph_type: "DiGraph"
 # transform_all_columns: True
 transform_all_columns: False
 num_pca_components: 3
-
-additional_columns:
-  pca_columns:
-  - "global_pca_1"
-  - "global_pca_2"
-  - "global_pca_3"
+pca_version: 2

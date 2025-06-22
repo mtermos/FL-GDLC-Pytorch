@@ -41,6 +41,10 @@ class LitClassifier(pl.LightningModule):
             self.optimizer = SGD
 
         if training_cfg.loss_type == "focal":
+            # alpha = weight_tensor
+            # alpha = weight_tensor / weight_tensor.sum()
+            # print(f"==>> alpha: {alpha}")
+            # self.criterion = FocalLoss(alpha=alpha,
             self.criterion = FocalLoss(alpha=training_cfg.focal_loss_alpha,
                                        gamma=training_cfg.focal_loss_gamma, reduction=training_cfg.focal_loss_reduction)
         elif training_cfg.loss_type == "cross_entropy":
@@ -57,6 +61,12 @@ class LitClassifier(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
+
+        if batch_idx == 1:
+            unique, counts = np.unique(y.numpy(), return_counts=True)
+            dist = dict(zip(unique.tolist(), counts.tolist()))
+            print(f"Batch {batch_idx}: {dist}")
+
         pred = self(x)
         loss = self.criterion(pred, y)
         pred = pred.argmax(dim=1)
