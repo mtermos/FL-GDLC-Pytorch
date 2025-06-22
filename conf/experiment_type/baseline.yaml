@@ -1,4 +1,5 @@
 experiment_type: "baseline"
+gdlc: False
 description: "No centralities features are added"
 
 graph_type: "DiGraph"

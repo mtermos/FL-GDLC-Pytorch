@@ -1,4 +1,5 @@
 experiment_type: "pca_baseline"
+gdlc: False
 description: "Addition of PCA columns representing network flow features"
 
 graph_type: "DiGraph"

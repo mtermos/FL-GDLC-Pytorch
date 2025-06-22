@@ -1,5 +1,7 @@
 experiment_type: "centralized_gdlc"
+gdlc: True
 description: "Addition of the GDLC features"
 
 graph_type: "DiGraph"
+
 # graph_type: "MultiDiGraph"

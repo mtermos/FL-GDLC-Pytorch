@@ -109,19 +109,22 @@ if __name__ == "__main__":
     # experiment = "exp_test"
     # experiment = "exp1_small"
     # experiment = "exp1_mini_high"
-    experiment = "exp1"
+    # experiment = "exp1"
+    experiment = "exp4"
     # experiment = "exp2"
     exp_types = [
-        "baseline",
-        "selected_centralities",
+        # "baseline",
+        # "selected_centralities",
         # "all_centralities",
-        "pca_gdlc"
+        "pca_gdlc",
+        # "pca_baseline",
+        # "gdlc"
     ]
 
     models = [
         # "mlp",
-        "cnn",
-        # "cnn_lstm"
+        # "cnn",
+        "cnn_lstm"
     ]
 
     run_dtime = time.strftime("%Y%m%d-%H%M%S")

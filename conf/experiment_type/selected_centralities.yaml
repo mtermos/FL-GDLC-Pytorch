@@ -1,4 +1,5 @@
 experiment_type: "selected_centralities"
+gdlc: False
 description: "Addition of selected centralities: degree, betweenness, and pagerank"
 
 graph_type: "DiGraph"

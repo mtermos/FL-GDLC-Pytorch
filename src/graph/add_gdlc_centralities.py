@@ -4,14 +4,14 @@ from src.graph.add_centralities import add_centralities
 
 
 def add_gdlc_centralities(df, src_ip_col, dst_ip_col, G):
-    gdlc_type = get_gdlc_type(G)
+    gdlc_type, properties = get_gdlc_type(G)
     centrality_measures = gdlc_centrality_measures[gdlc_type-1]
     network_features = gdlc_network_features[gdlc_type-1]
 
     add_centralities(df, new_path=None, graph_path=None, src_ip_col=src_ip_col, dst_ip_col=dst_ip_col,
                      cn_measures=centrality_measures, network_features=network_features, G=G)
 
-    return network_features
+    return network_features, gdlc_type, properties
 
 
 def get_gdlc_type(G):
@@ -21,9 +21,13 @@ def get_gdlc_type(G):
     transitivity = graph_properties["transitivity"]
     mixing_param = graph_properties["mixing_parameter"]
 
-    print("==============================")
-    print(f"====> graph_properties: {graph_properties}")
 
+    properties = {
+        "density": density,
+        "mixing_param": mixing_param,
+    }
+    print("==============================")
+    print(f"====> properties: {properties}")
     if density < 0.1:
         is_low_density = True
     else:
@@ -84,4 +88,4 @@ def get_gdlc_type(G):
 
     print(f"==>> gdlc_type: {gdlc_type}")
 
-    return gdlc_type
+    return gdlc_type, properties

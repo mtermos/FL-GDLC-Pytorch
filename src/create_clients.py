@@ -36,8 +36,9 @@ def _process_partition_data(partition_df, src_ip_col, dst_ip_col, label_col, cla
     )
 
     gdlc_features = None
-    if cfg.experiment_type == "pca_gdlc":
-        gdlc_features = add_gdlc_centralities(
+    gdlc_type = None
+    if cfg.experiment_type == "pca_gdlc" or cfg.experiment_type == "gdlc":
+        gdlc_features, gdlc_type, graph_properties = add_gdlc_centralities(
             partition_df, src_ip_col, dst_ip_col, G=G)
     else:
         add_centralities(partition_df, new_path=None, graph_path=None, src_ip_col=src_ip_col, dst_ip_col=dst_ip_col,
@@ -45,7 +46,7 @@ def _process_partition_data(partition_df, src_ip_col, dst_ip_col, label_col, cla
 
     calculate_df_properties(partition_df, G, label_col, class_col,
                             processed_dir, partition_name)
-    return gdlc_features
+    return gdlc_features, gdlc_type, graph_properties
 
 
 def _save_dataframes(df_list, test_df, names, processed_dir):
@@ -98,6 +99,8 @@ def create_clients(base_cfg, experiment_type_cfg):
     names = []
     df_mapping = {}
     gdlc_features_mapping = {}
+    gdlc_types_mapping = {}
+    graph_properties_mapping = {}
 
     for dataset in base_cfg.datasets:
         df = df_map[dataset.name]
@@ -116,18 +119,31 @@ def create_clients(base_cfg, experiment_type_cfg):
         for client_df in np.array_split(clients_df, dataset.num_clients):
             client_name = f"client_{clients_count}"
             names.append(client_name)
-            gdlc_features = _process_partition_data(
+            gdlc_features, gdlc_type, graph_properties = _process_partition_data(
                 client_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, client_name, experiment_type_cfg, processed_dir, graph_class=graph_class)
-            gdlc_features_mapping[client_name] = gdlc_features
+            gdlc_types_mapping[client_name] = {"gdlc_type": gdlc_type, "dataset_name": dataset.name}
+            graph_properties_mapping[client_name] = {"graph_properties": graph_properties, "dataset_name": dataset.name}
+            gdlc_features_mapping[client_name] = {"gdlc_features": gdlc_features, "dataset_name": dataset.name}
             df_mapping[client_name] = client_df
             clients_count += 1
 
     # Process test data
     test_df = pd.concat(test_df_list)
-    gdlc_features = _process_partition_data(
+    gdlc_features, gdlc_type, graph_properties = _process_partition_data(
         test_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, "test", experiment_type_cfg, processed_dir, graph_class=graph_class)
-    gdlc_features_mapping["test"] = gdlc_features
+    # gdlc_features_mapping["test"] = gdlc_features
+    # gdlc_types_mapping["test"] = gdlc_type
+    gdlc_types_mapping["test"] = {"gdlc_type": gdlc_type, "dataset_name": "test"}
+    graph_properties_mapping["test"] = {"graph_properties": graph_properties, "dataset_name": "test"}
+    gdlc_features_mapping["test"] = {"gdlc_features": gdlc_features, "dataset_name": "test"}
 
+    if experiment_type_cfg.gdlc:
+        with open(os.path.join(processed_dir, "gdlc_features.json"), "w") as f:
+            json.dump(gdlc_features_mapping, f, cls=NumpyEncoder)
+        with open(os.path.join(processed_dir, "gdlc_types.json"), "w") as f:
+            json.dump(gdlc_types_mapping, f, cls=NumpyEncoder)
+        with open(os.path.join(processed_dir, "graph_properties.json"), "w") as f:
+            json.dump(graph_properties_mapping, f, cls=NumpyEncoder)
     # Handle PCA specific processing
     if experiment_type_cfg.experiment_type == "pca_gdlc" or experiment_type_cfg.experiment_type == "pca_baseline":
         names.append("test")

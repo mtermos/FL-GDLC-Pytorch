@@ -1,4 +1,5 @@
 experiment_type: "all_centralities"
+gdlc: False
 description: "Addition of all centralities"
 
 graph_type: "DiGraph"

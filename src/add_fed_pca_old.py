@@ -11,6 +11,7 @@ from sklearn.metrics import mean_squared_error
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def compute_rmse(actual: np.ndarray, predicted: np.ndarray) -> float:
     """
     Compute root-mean-square error between two arrays.
@@ -26,37 +27,33 @@ class FederatedPCAClient:
     name: str
     df: pd.DataFrame
     n_components: int = 2
-    scaler_local: StandardScaler = field(init=False)
-    local_pca: PCA = field(init=False)
-    X_std: np.ndarray = field(init=False)
     local_scores: np.ndarray = field(init=False)
+    scaler_local: StandardScaler = field(init=False)
     global_scores: np.ndarray = field(init=False)
+    scaler_global: StandardScaler = field(init=False)
 
     def compute_local_pca(self) -> np.ndarray:
         """
-        Perform local PCA and return the covariance matrix of standardized local features.
+        Perform local PCA.
+        Returns the covariance matrix of the local PCA scores.
         """
-        # Fill missing values and standardize features
+
         self.df = self.df.fillna(0)
         self.scaler_local = StandardScaler()
-        self.X_std = self.scaler_local.fit_transform(self.df)
+        X_std = self.scaler_local.fit_transform(self.df)
+        pca = PCA(n_components=self.n_components)
+        self.local_scores = pca.fit_transform(X_std)
 
-        # Fit local PCA and store for reconstruction
-        if self.X_std.shape[1] < self.n_components:
-            raise ValueError(
-                f"n_components={self.n_components} is larger than feature dimension={self.X_std.shape[1]}"
-            )
-        self.local_pca = PCA(n_components=self.n_components)
-        self.local_scores = self.local_pca.fit_transform(self.X_std)
-
-        # Return full feature-space covariance for federated aggregation
-        return np.cov(self.X_std, rowvar=False)
+        # Return covariance of local PCA scores
+        return np.cov(self.local_scores, rowvar=False)
 
     def apply_global_pca(self, global_components: np.ndarray) -> np.ndarray:
         """
-        Project standardized local features into the global PCA subspace.
+        Project local PCA scores into the global PCA subspace and standardize.
         """
-        self.global_scores = self.X_std.dot(global_components)
+        transformed = self.local_scores.dot(global_components)
+        self.scaler_global = StandardScaler().fit(transformed)
+        self.global_scores = self.scaler_global.transform(transformed)
         return self.global_scores
 
 
@@ -72,26 +69,22 @@ def process_clients_with_grouped_pca_rmse(
         errors: dictionary with 'reconstruction_errors_local' and 'reconstruction_errors_federated'.
         pca_columns: list of names for global PCA columns.
     """
-    # Align all clients to the same feature set
-    all_features = sorted({col for df in dfs_dict.values()
-                            for col in df.columns})
-    aligned_dfs = {
-        name: df.reindex(columns=all_features, fill_value=0)
-        for name, df in dfs_dict.items()
-    }
 
     # Local stage: compute per-client covariance
-    clients: List[FederatedPCAClient] = []
-    cov_matrices: List[np.ndarray] = []
+    clients = []
+    cov_matrices = []
 
-    for name, df in aligned_dfs.items():
+    for name, df in dfs_dict.items():
         logger.info("Computing local PCA for client %s", name)
         client = FederatedPCAClient(
-            name=name, df=df, n_components=n_components)
+            name=name,
+            df=df,
+            n_components=n_components
+        )
         try:
             cov = client.compute_local_pca()
         except ValueError as e:
-            logger.warning("Client %s skipped due to error: %s", name, e)
+            logger.warning(str(e))
             continue
         clients.append(client)
         cov_matrices.append(cov)
@@ -99,38 +92,39 @@ def process_clients_with_grouped_pca_rmse(
     if not cov_matrices:
         raise RuntimeError("No valid clients for PCA.")
 
-    # Server stage: aggregate covariances and compute global components
-    global_cov = sum(cov_matrices) / len(cov_matrices)
+    # Global stage: aggregate and compute shared components
+    global_cov = np.mean(cov_matrices, axis=0)
     eigvals, eigvecs = np.linalg.eigh(global_cov)
-    # Sort eigenvectors by descending eigenvalue
-    idx_desc = np.argsort(eigvals)[::-1]
-    global_components = eigvecs[:, idx_desc[:n_components]]
+    top_indices = np.argsort(eigvals)[::-1][:n_components]
+    global_components = eigvecs[:, top_indices]
 
     # Prepare outputs
+    reconstruction_errors_local = {}
+    reconstruction_errors_federated = {}
     pca_columns = [f"global_pca_{i+1}" for i in range(n_components)]
-    reconstruction_errors_local: Dict[str, float] = {}
-    reconstruction_errors_federated: Dict[str, float] = {}
-    client_dfs: Dict[str, pd.DataFrame] = {}
 
-    # Apply global PCA, compute RMSE, and collect final DataFrames
+    # Apply global PCA, compute RMSE, and save results
     for client in clients:
         logger.info("Applying global PCA for client %s", client.name)
         G = client.apply_global_pca(global_components)
 
-        # Local reconstruction error in original feature space
-        X_hat_local = client.local_scores.dot(client.local_pca.components_)
-        rmse_loc = compute_rmse(client.X_std, X_hat_local)
+        # Build final DataFrame
+        client.df = pd.DataFrame(G, columns=pca_columns, index=client.df.index)
 
-        # Federated reconstruction error in original feature space
-        X_hat_fed = G.dot(global_components.T)
-        rmse_fed = compute_rmse(client.X_std, X_hat_fed)
+        # Compute RMSE metrics
+        Z_std = client.df.dot(global_components)
+        Z_std = client.scaler_global.transform(Z_std)
 
+        rmse_loc = compute_rmse(
+            client.scaler_global.transform(client.local_scores),
+            client.scaler_global.transform(
+                client.local_scores.dot(global_components.T))
+        )
+        rmse_fed = compute_rmse(
+            client.scaler_global.transform(client.local_scores), G
+        )
         reconstruction_errors_local[client.name] = rmse_loc
         reconstruction_errors_federated[client.name] = rmse_fed
-
-        # Build final DataFrame of global scores
-        df_global = pd.DataFrame(G, columns=pca_columns, index=client.df.index)
-        client_dfs[client.name] = df_global
 
         logger.info(
             "Client %s errors: local RMSE=%.4f, federated RMSE=%.4f",
@@ -142,4 +136,4 @@ def process_clients_with_grouped_pca_rmse(
         'reconstruction_errors_federated': reconstruction_errors_federated
     }
 
-    return client_dfs, errors, pca_columns
+    return {client.name: client.df for client in clients}, errors, pca_columns

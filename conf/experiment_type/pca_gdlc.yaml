@@ -1,4 +1,5 @@
 experiment_type: "pca_gdlc"
+gdlc: True
 description: "Addition of PCA columns representing the GDLC features"
 
 graph_type: "DiGraph"
