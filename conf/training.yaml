@@ -3,6 +3,8 @@ multi_class: true
 # batch_size: 1024
 batch_size: 2048
 max_epochs: 1
+centralized_max_epochs: 2
+sequence_length: 3
 
 optimizer: "adam"
 learning_rate: 1e-3

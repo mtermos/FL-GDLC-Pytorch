@@ -1,6 +1,10 @@
 experiment_type: "gdlc"
-gdlc: True
 description: "Addition of the GDLC features"
+processed_data_dir: "gdlc"
+
+gdlc: True
+centralized: False
+pca: False
 
 graph_type: "DiGraph"
 

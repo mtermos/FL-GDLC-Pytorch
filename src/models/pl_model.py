@@ -110,6 +110,7 @@ class LitClassifier(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         if getattr(self.trainer, "sanity_checking", False):
+            self.val_outputs = {"preds": [], "targets": []}
             return  # skip any summary/logging during the sanity‐check
         all_preds = th.cat(self.val_outputs["preds"]).detach().cpu().numpy()
         all_targets = th.cat(

@@ -1,9 +1,9 @@
-experiment_type: "selected_centralities"
+experiment_type: "centralized_selected_centralities"
 description: "Addition of selected centralities: degree, betweenness, and pagerank"
 processed_data_dir: "selected_centralities"
 
 gdlc: False
-centralized: False
+centralized: True
 pca: False
 
 graph_type: "DiGraph"

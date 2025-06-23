@@ -131,7 +131,7 @@ def generate_server_fn(data, labels, model_cfg, cfg_base, exp_type, config_to_ad
             logger,
             cfg_base,
             check_if_sequence_model(model_cfg),
-            model_cfg.sequence_length
+            cfg_base.training.sequence_length
         )
 
         return ServerAppComponents(

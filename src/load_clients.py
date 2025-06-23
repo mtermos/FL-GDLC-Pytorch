@@ -6,7 +6,7 @@ from src.create_clients import create_clients
 
 def load_clients_files(base_cfg, cfg):
     processed_dir = os.path.join(
-        base_cfg.dataset_properties.processed_dir, cfg.experiment_type)
+        base_cfg.dataset_properties.processed_dir, cfg.processed_data_dir)
     if os.path.exists(processed_dir) and os.path.exists(os.path.join(processed_dir, "test.parquet")):
         test_path = os.path.join(processed_dir, "test.parquet")
         clients_paths = [os.path.join(processed_dir, f) for f in os.listdir(

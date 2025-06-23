@@ -1,9 +1,9 @@
-experiment_type: "all_centralities"
+experiment_type: "centralized_all_centralities"
 description: "Addition of all centralities"
 processed_data_dir: "all_centralities"
 
 gdlc: False
-centralized: False
+centralized: True
 pca: False
 
 graph_type: "DiGraph"

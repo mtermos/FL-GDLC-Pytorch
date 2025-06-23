@@ -26,7 +26,7 @@ def get_gdlc_type(G):
     }
     print("==============================")
     print(f"====> properties: {properties}")
-    if density < 0.1:
+    if density < 0.01:
         is_low_density = True
     else:
         is_low_density = False

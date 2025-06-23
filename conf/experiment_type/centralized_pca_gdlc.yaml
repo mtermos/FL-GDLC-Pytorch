@@ -1,0 +1,15 @@
+experiment_type: "centralized_pca_gdlc"
+description: "Addition of the GDLC features"
+processed_data_dir: "pca_gdlc"
+
+gdlc: True
+centralized: True
+pca: True
+# transform_all_columns: True
+transform_all_columns: False
+num_pca_components: 3
+pca_version: 2
+
+graph_type: "DiGraph"
+
+# graph_type: "MultiDiGraph"

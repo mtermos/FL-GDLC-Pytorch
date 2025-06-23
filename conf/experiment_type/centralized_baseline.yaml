@@ -1,9 +1,9 @@
-experiment_type: "baseline"
+experiment_type: "centralized_baseline"
 description: "No centralities features are added"
 processed_data_dir: "baseline"
 
 gdlc: False
-centralized: False
+centralized: True
 pca: False
 
 graph_type: "DiGraph"
