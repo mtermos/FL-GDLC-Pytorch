@@ -52,3 +52,6 @@ def run_centralized_simulation(data_module: CentralizedDataModule, cfg_base, mod
     )
 
     trainer.fit(model, data_module)
+    test_results = trainer.test(model, datamodule=data_module)
+    # print(f"==>> test_results: {test_results[0]}")
+    logger.log_metrics(test_results[0])
