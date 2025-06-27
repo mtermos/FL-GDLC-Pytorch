@@ -121,9 +121,12 @@ def create_clients(base_cfg, experiment_type_cfg):
             names.append(client_name)
             gdlc_features, gdlc_type, graph_properties = _process_partition_data(
                 client_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, client_name, experiment_type_cfg, processed_dir, graph_class=graph_class)
-            gdlc_types_mapping[client_name] = {"gdlc_type": gdlc_type, "dataset_name": dataset.name}
-            graph_properties_mapping[client_name] = {"graph_properties": graph_properties, "dataset_name": dataset.name}
-            gdlc_features_mapping[client_name] = {"gdlc_features": gdlc_features, "dataset_name": dataset.name}
+            gdlc_types_mapping[client_name] = {
+                "gdlc_type": gdlc_type, "dataset_name": dataset.name}
+            graph_properties_mapping[client_name] = {
+                "graph_properties": graph_properties, "dataset_name": dataset.name}
+            gdlc_features_mapping[client_name] = {
+                "gdlc_features": gdlc_features, "dataset_name": dataset.name}
             df_mapping[client_name] = client_df
             clients_count += 1
 
@@ -133,9 +136,12 @@ def create_clients(base_cfg, experiment_type_cfg):
         test_df, dp.src_ip_col, dp.dst_ip_col, dp.label_col, dp.class_col, "test", experiment_type_cfg, processed_dir, graph_class=graph_class)
     # gdlc_features_mapping["test"] = gdlc_features
     # gdlc_types_mapping["test"] = gdlc_type
-    gdlc_types_mapping["test"] = {"gdlc_type": gdlc_type, "dataset_name": "test"}
-    graph_properties_mapping["test"] = {"graph_properties": graph_properties, "dataset_name": "test"}
-    gdlc_features_mapping["test"] = {"gdlc_features": gdlc_features, "dataset_name": "test"}
+    gdlc_types_mapping["test"] = {
+        "gdlc_type": gdlc_type, "dataset_name": "test"}
+    graph_properties_mapping["test"] = {
+        "graph_properties": graph_properties, "dataset_name": "test"}
+    gdlc_features_mapping["test"] = {
+        "gdlc_features": gdlc_features, "dataset_name": "test"}
 
     if experiment_type_cfg.gdlc:
         with open(os.path.join(processed_dir, "gdlc_features.json"), "w") as f:
@@ -155,9 +161,9 @@ def create_clients(base_cfg, experiment_type_cfg):
             all_columns = list(value.columns)
             if experiment_type_cfg.experiment_type == "pca_gdlc":
                 if experiment_type_cfg.transform_all_columns:
-                    all_columns += gdlc_features_mapping[key]
+                    all_columns += gdlc_features_mapping[key]["gdlc_features"]
                 else:
-                    all_columns = gdlc_features_mapping[key]
+                    all_columns = gdlc_features_mapping[key]["gdlc_features"]
 
             columns_for_pca[key] = list({
                 x for x in all_columns if x not in dp.drop_columns + dp.weak_columns})
