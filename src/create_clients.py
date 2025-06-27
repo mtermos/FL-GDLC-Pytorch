@@ -37,6 +37,7 @@ def _process_partition_data(partition_df, src_ip_col, dst_ip_col, label_col, cla
 
     gdlc_features = None
     gdlc_type = None
+    graph_properties = None
     if cfg.experiment_type == "pca_gdlc" or cfg.experiment_type == "gdlc":
         gdlc_features, gdlc_type, graph_properties = add_gdlc_centralities(
             partition_df, src_ip_col, dst_ip_col, G=G)
@@ -59,7 +60,7 @@ def _save_dataframes(df_list, test_df, names, processed_dir):
 def create_clients(base_cfg, experiment_type_cfg):
     dp = base_cfg.dataset_properties
     processed_dir = os.path.join(
-        dp.processed_dir, experiment_type_cfg.experiment_type)
+        dp.processed_dir, experiment_type_cfg.processed_data_dir)
     os.makedirs(processed_dir, exist_ok=True)
 
     if experiment_type_cfg.graph_type == "DiGraph":
